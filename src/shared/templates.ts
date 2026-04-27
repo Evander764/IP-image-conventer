@@ -24,10 +24,10 @@ function page(
 }
 
 export const templateIds = [
-  'editorial-clean',
-  'business-mono',
   'tech-briefing',
+  'business-mono',
   'warm-column',
+  'editorial-clean',
   'bold-opinion',
   'fresh-note',
   'shan-shui',
@@ -35,7 +35,7 @@ export const templateIds = [
   'journal-growth'
 ] as const satisfies readonly TemplateId[]
 
-export const defaultTemplateId: TemplateId = 'editorial-clean'
+export const defaultTemplateId: TemplateId = 'tech-briefing'
 
 export const templates: Record<TemplateId, TemplateConfig> = {
   'editorial-clean': {
@@ -75,19 +75,19 @@ export const templates: Record<TemplateId, TemplateConfig> = {
   },
   'business-mono': {
     id: 'business-mono',
-    name: '商务黑白',
-    series: 'Business Mono / Template 02',
-    description: '高级灰、细线框、强层级，适合商业观点、报告和公众号专栏。',
-    page: page(102, 96, 102, 96, 26),
+    name: '黑白商务报告',
+    series: 'Business Report / 2026',
+    description: '黑白灰、强标题、左竖线引用，适合公众号、商业分析和观点长文。',
+    page: page(104, 110, 108, 110, 24),
     colors: {
-      background: '#e7e8ea',
-      paper: '#f8f8f6',
-      text: '#1e2229',
-      muted: '#70757d',
-      accent: '#111418',
-      accent2: '#b8bdc5',
-      border: '#b9bec7',
-      quoteBackground: 'rgba(17, 20, 24, 0.06)'
+      background: '#ecebea',
+      paper: '#fbfbfa',
+      text: '#222222',
+      muted: '#6e6e6e',
+      accent: '#0d0d0d',
+      accent2: '#c7b79f',
+      border: '#d6d2cb',
+      quoteBackground: 'rgba(20, 20, 20, 0.045)'
     },
     fonts: {
       title: titleFont,
@@ -95,34 +95,34 @@ export const templates: Record<TemplateId, TemplateConfig> = {
       accent: '"Georgia", "Times New Roman", serif'
     },
     typography: {
-      h1: { fontSize: 76, lineHeight: 1.04, marginBottom: 32, fontWeight: 900 },
-      h2: { fontSize: 42, lineHeight: 1.25, marginBottom: 23, fontWeight: 900 },
-      h3: { fontSize: 32, lineHeight: 1.28, marginBottom: 18, fontWeight: 800 },
-      paragraph: { fontSize: 29, lineHeight: 1.78, marginBottom: 24 },
-      quote: { fontSize: 29, lineHeight: 1.68, marginBottom: 26 },
-      list: { fontSize: 28, lineHeight: 1.68, marginBottom: 23 }
+      h1: { fontSize: 82, lineHeight: 1.02, marginBottom: 36, fontWeight: 900 },
+      h2: { fontSize: 44, lineHeight: 1.2, marginBottom: 24, fontWeight: 900 },
+      h3: { fontSize: 31, lineHeight: 1.32, marginBottom: 18, fontWeight: 850 },
+      paragraph: { fontSize: 29, lineHeight: 1.86, marginBottom: 25 },
+      quote: { fontSize: 29, lineHeight: 1.76, marginBottom: 28 },
+      list: { fontSize: 28, lineHeight: 1.74, marginBottom: 24 }
     },
     cover: {
-      titleColor: '#ffffff',
-      subtitleColor: '#d7d9dd',
-      overlay: 'linear-gradient(180deg, rgba(10, 12, 16, 0.08), rgba(10, 12, 16, 0.78))'
+      titleColor: '#111111',
+      subtitleColor: '#4a4a4a',
+      overlay: 'linear-gradient(90deg, rgba(255,255,255,0.94), rgba(255,255,255,0.7), rgba(255,255,255,0.2))'
     }
   },
   'tech-briefing': {
     id: 'tech-briefing',
-    name: '科技简报',
-    series: 'Tech Briefing / Template 03',
-    description: '蓝绿点缀、模块化信息层，适合 AI、效率、产品和技术内容。',
-    page: page(104, 94, 104, 94, 26),
+    name: '蓝色科技系统',
+    series: '科技简报 / 2026.05',
+    description: '浅蓝网格、编号标题、提示卡片，适合 AI、效率、产品和技术文章。',
+    page: page(96, 86, 98, 86, 24),
     colors: {
-      background: '#eaf4f7',
-      paper: '#f9fcfd',
-      text: '#13252e',
-      muted: '#657680',
-      accent: '#0f74a8',
-      accent2: '#23b7a4',
-      border: '#c5dce5',
-      quoteBackground: 'rgba(35, 183, 164, 0.1)'
+      background: '#e9f4ff',
+      paper: '#f8fbff',
+      text: '#071b3a',
+      muted: '#5d6f8c',
+      accent: '#1976ff',
+      accent2: '#7bb7ff',
+      border: '#b9d6ff',
+      quoteBackground: 'rgba(25, 118, 255, 0.075)'
     },
     fonts: {
       title: titleFont,
@@ -130,34 +130,34 @@ export const templates: Record<TemplateId, TemplateConfig> = {
       accent: '"Cascadia Code", "Consolas", monospace'
     },
     typography: {
-      h1: { fontSize: 74, lineHeight: 1.06, marginBottom: 32, fontWeight: 900 },
-      h2: { fontSize: 42, lineHeight: 1.24, marginBottom: 23, fontWeight: 850 },
-      h3: { fontSize: 32, lineHeight: 1.28, marginBottom: 18, fontWeight: 800 },
-      paragraph: { fontSize: 29, lineHeight: 1.76, marginBottom: 24 },
-      quote: { fontSize: 29, lineHeight: 1.68, marginBottom: 26 },
-      list: { fontSize: 28, lineHeight: 1.66, marginBottom: 23 }
+      h1: { fontSize: 72, lineHeight: 1.08, marginBottom: 34, fontWeight: 900 },
+      h2: { fontSize: 40, lineHeight: 1.24, marginBottom: 24, fontWeight: 900 },
+      h3: { fontSize: 31, lineHeight: 1.28, marginBottom: 18, fontWeight: 850 },
+      paragraph: { fontSize: 28, lineHeight: 1.78, marginBottom: 23 },
+      quote: { fontSize: 28, lineHeight: 1.68, marginBottom: 26 },
+      list: { fontSize: 27, lineHeight: 1.68, marginBottom: 22 }
     },
     cover: {
-      titleColor: '#ffffff',
-      subtitleColor: '#d4fbff',
-      overlay: 'linear-gradient(180deg, rgba(10, 48, 64, 0.08), rgba(10, 48, 64, 0.78))'
+      titleColor: '#061a3a',
+      subtitleColor: '#506582',
+      overlay: 'linear-gradient(90deg, rgba(248,251,255,0.96), rgba(248,251,255,0.76), rgba(248,251,255,0.24))'
     }
   },
   'warm-column': {
     id: 'warm-column',
-    name: '温暖专栏',
-    series: 'Warm Column / Template 04',
-    description: '柔和纸感、橙红强调、专栏式排版，适合成长、生活和观点文章。',
-    page: page(112, 100, 108, 100, 30),
+    name: '暖金阅读专栏',
+    series: '系列主题 / 读写成长',
+    description: '米白纸感、金色强调、柔和引用块，适合成长、读书和方法论内容。',
+    page: page(108, 96, 108, 96, 28),
     colors: {
-      background: '#f0e2d2',
-      paper: '#fff7ec',
-      text: '#443329',
-      muted: '#8b7666',
-      accent: '#c45f3c',
-      accent2: '#e3aa6f',
-      border: '#e0c7ab',
-      quoteBackground: 'rgba(196, 95, 60, 0.1)'
+      background: '#efe5d3',
+      paper: '#fff8ea',
+      text: '#32302c',
+      muted: '#786f62',
+      accent: '#c99531',
+      accent2: '#dec28e',
+      border: '#e4d2ae',
+      quoteBackground: 'rgba(201, 149, 49, 0.1)'
     },
     fonts: {
       title: serifFont,
@@ -165,17 +165,17 @@ export const templates: Record<TemplateId, TemplateConfig> = {
       accent: serifFont
     },
     typography: {
-      h1: { fontSize: 80, lineHeight: 1.08, marginBottom: 34, fontWeight: 700 },
-      h2: { fontSize: 43, lineHeight: 1.25, marginBottom: 24, fontWeight: 800 },
-      h3: { fontSize: 33, lineHeight: 1.3, marginBottom: 18, fontWeight: 800 },
-      paragraph: { fontSize: 30, lineHeight: 1.84, marginBottom: 25 },
-      quote: { fontSize: 30, lineHeight: 1.72, marginBottom: 27 },
-      list: { fontSize: 29, lineHeight: 1.7, marginBottom: 24 }
+      h1: { fontSize: 76, lineHeight: 1.08, marginBottom: 34, fontWeight: 800 },
+      h2: { fontSize: 42, lineHeight: 1.25, marginBottom: 24, fontWeight: 850 },
+      h3: { fontSize: 31, lineHeight: 1.3, marginBottom: 18, fontWeight: 850 },
+      paragraph: { fontSize: 29, lineHeight: 1.82, marginBottom: 24 },
+      quote: { fontSize: 29, lineHeight: 1.72, marginBottom: 27 },
+      list: { fontSize: 28, lineHeight: 1.72, marginBottom: 24 }
     },
     cover: {
-      titleColor: '#fff8ec',
-      subtitleColor: '#ffd8bd',
-      overlay: 'linear-gradient(180deg, rgba(75, 45, 28, 0.08), rgba(75, 45, 28, 0.72))'
+      titleColor: '#2f2d29',
+      subtitleColor: '#5f574c',
+      overlay: 'linear-gradient(90deg, rgba(255,248,234,0.96), rgba(255,248,234,0.72), rgba(255,248,234,0.18))'
     }
   },
   'bold-opinion': {

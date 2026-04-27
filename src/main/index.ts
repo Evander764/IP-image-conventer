@@ -172,7 +172,7 @@ function coverFileName(meta: ArticleMeta): string {
   return meta.platform === 'wechat' ? 'cover_wechat.png' : 'cover_vertical.png'
 }
 
-function coverTextSvg(meta: ArticleMeta, width: number, height: number): string {
+function genericCoverTextSvg(meta: ArticleMeta, width: number, height: number): string {
   const template = getTemplate(meta.template)
   const titleLines = wrapTextByUnits(meta.title, 8.5, 4)
   const subtitleLines = meta.subtitle ? wrapTextByUnits(meta.subtitle, 17, 2) : []
@@ -258,8 +258,243 @@ function coverTextSvg(meta: ArticleMeta, width: number, height: number): string 
   `
 }
 
+function techCoverTextSvg(meta: ArticleMeta, width: number, height: number): string {
+  const template = getTemplate(meta.template)
+  const compact = height < 600
+  const titleLines = wrapTextByUnits(meta.title, compact ? 9 : 8.5, compact ? 2 : 4)
+  const subtitleLines = meta.subtitle ? wrapTextByUnits(meta.subtitle, compact ? 18 : 16, 2) : []
+  const left = compact ? 62 : 116
+  const chipY = compact ? 48 : 210
+  const titleY = compact ? 126 : 420
+  const titleSize = compact ? 48 : titleLines.length >= 3 ? 84 : 96
+  const subtitleSize = compact ? 24 : 38
+  const titleText = titleLines
+    .map((line, index) => `<text x="${left}" y="${titleY + index * titleSize * 1.1}">${svgEscape(line)}</text>`)
+    .join('')
+  const subtitleStart = titleY + titleLines.length * titleSize * 1.1 + (compact ? 18 : 38)
+  const subtitleText = subtitleLines
+    .map(
+      (line, index) =>
+        `<text class="subtitle" x="${left}" y="${subtitleStart + index * subtitleSize * 1.45}">${svgEscape(line)}</text>`
+    )
+    .join('')
+  const author = meta.author
+    ? `<text class="author" x="${left + (compact ? 34 : 76)}" y="${height - (compact ? 46 : 248)}">${svgEscape(meta.author)}</text>`
+    : ''
+
+  return `
+    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="leftShade" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stop-color="#f8fbff" stop-opacity="0.98"/>
+          <stop offset="0.68" stop-color="#f8fbff" stop-opacity="0.78"/>
+          <stop offset="1" stop-color="#f8fbff" stop-opacity="0.2"/>
+        </linearGradient>
+      </defs>
+      <rect width="${width}" height="${height}" fill="url(#leftShade)"/>
+      <g opacity="0.52">
+        <path d="M${width - 210} 0 V${compact ? 180 : 360} M${width - 150} 0 V${compact ? 150 : 300} H${width - 82}" stroke="#9cc8ff" stroke-width="2" fill="none"/>
+        <circle cx="${width - 150}" cy="${compact ? 150 : 300}" r="6" fill="none" stroke="#9cc8ff" stroke-width="2"/>
+        <circle cx="${width - 82}" cy="${compact ? 150 : 300}" r="6" fill="none" stroke="#9cc8ff" stroke-width="2"/>
+      </g>
+      <g class="chip">
+        <rect x="${left}" y="${chipY}" width="${compact ? 118 : 150}" height="${compact ? 30 : 42}" rx="6"/>
+        <text x="${left + (compact ? 18 : 24)}" y="${chipY + (compact ? 22 : 29)}">科技简报</text>
+        <rect x="${left + (compact ? 118 : 150)}" y="${chipY}" width="${compact ? 108 : 138}" height="${compact ? 30 : 42}" rx="6" class="chip-date"/>
+        <text x="${left + (compact ? 140 : 176)}" y="${chipY + (compact ? 22 : 29)}" class="date">2026.05</text>
+      </g>
+      <rect x="${left - 22}" y="${titleY - titleSize * 0.72}" width="${compact ? 6 : 10}" height="${titleLines.length * titleSize * 1.08}" rx="4" fill="${template.colors.accent}"/>
+      <g class="title">${titleText}</g>
+      <g>${subtitleText}</g>
+      <g class="dots"><rect x="${left}" y="${subtitleStart + subtitleLines.length * subtitleSize * 1.45 + (compact ? 14 : 30)}" width="${compact ? 46 : 70}" height="6" rx="3"/><circle cx="${left + (compact ? 66 : 96)}" cy="${subtitleStart + subtitleLines.length * subtitleSize * 1.45 + (compact ? 17 : 33)}" r="4"/><circle cx="${left + (compact ? 86 : 122)}" cy="${subtitleStart + subtitleLines.length * subtitleSize * 1.45 + (compact ? 17 : 33)}" r="4"/></g>
+      ${author ? `<circle cx="${left + 24}" cy="${height - (compact ? 52 : 256)}" r="${compact ? 18 : 31}" fill="${template.colors.accent}"/><path d="M${left + 24} ${height - (compact ? 58 : 264)}a8 8 0 1 0 0.1 0 M${left + 8} ${height - (compact ? 40 : 242)}c5-12 27-12 32 0" stroke="#fff" stroke-width="${compact ? 2 : 4}" fill="none"/>${author}` : ''}
+      <style>
+        .chip rect { fill: ${template.colors.accent}; }
+        .chip .chip-date { fill: rgba(255,255,255,0.76); stroke: ${template.colors.accent}; }
+        .chip text { fill: #fff; font-size: ${compact ? 18 : 26}px; font-weight: 800; font-family: "Microsoft YaHei", sans-serif; }
+        .chip .date { fill: ${template.colors.accent}; }
+        .title text { fill: ${template.cover.titleColor}; font-size: ${titleSize}px; font-weight: 900; font-family: "Microsoft YaHei", sans-serif; letter-spacing: 0; }
+        .subtitle { fill: ${template.cover.subtitleColor}; font-size: ${subtitleSize}px; font-family: "Microsoft YaHei", sans-serif; }
+        .dots rect, .dots circle { fill: ${template.colors.accent}; opacity: 0.88; }
+        .author { fill: ${template.colors.text}; font-size: ${compact ? 18 : 30}px; font-weight: 800; font-family: "Microsoft YaHei", sans-serif; }
+      </style>
+    </svg>
+  `
+}
+
+function businessCoverTextSvg(meta: ArticleMeta, width: number, height: number): string {
+  const template = getTemplate(meta.template)
+  const compact = height < 600
+  const titleLines = wrapTextByUnits(meta.title, compact ? 9 : 7.2, compact ? 2 : 4)
+  const subtitleLines = meta.subtitle ? wrapTextByUnits(meta.subtitle, compact ? 18 : 15, 2) : []
+  const left = compact ? 64 : 102
+  const titleY = compact ? 118 : 302
+  const titleSize = compact ? 48 : titleLines.length >= 3 ? 86 : 104
+  const subtitleSize = compact ? 24 : 34
+  const titleText = titleLines
+    .map((line, index) => `<text x="${left}" y="${titleY + index * titleSize * 1.08}">${svgEscape(line)}</text>`)
+    .join('')
+  const subtitleStart = titleY + titleLines.length * titleSize * 1.08 + (compact ? 26 : 62)
+  const subtitleText = subtitleLines
+    .map(
+      (line, index) =>
+        `<text class="subtitle" x="${left}" y="${subtitleStart + index * subtitleSize * 1.55}">${svgEscape(line)}</text>`
+    )
+    .join('')
+  const author = meta.author
+    ? `<text class="author-name" x="${left + (compact ? 54 : 88)}" y="${height - (compact ? 58 : 348)}">${svgEscape(meta.author)}</text><text class="author-title" x="${left + (compact ? 54 : 88)}" y="${height - (compact ? 32 : 304)}">作者 / 机构信息</text>`
+    : ''
+
+  return `
+    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="businessShade" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stop-color="#ffffff" stop-opacity="0.96"/>
+          <stop offset="0.64" stop-color="#ffffff" stop-opacity="0.78"/>
+          <stop offset="1" stop-color="#ffffff" stop-opacity="0.25"/>
+        </linearGradient>
+      </defs>
+      <rect width="${width}" height="${height}" fill="url(#businessShade)"/>
+      <rect x="${left}" y="${compact ? 34 : 98}" width="${compact ? 92 : 126}" height="${compact ? 7 : 12}" fill="${template.colors.accent2}"/>
+      <text class="category" x="${left}" y="${compact ? 26 : 72}">这里是文章或报告的分类标签</text>
+      <g class="title">${titleText}</g>
+      <rect x="${left}" y="${subtitleStart - (compact ? 8 : 20)}" width="${compact ? 300 : 560}" height="1" fill="${template.colors.border}"/>
+      <g>${subtitleText}</g>
+      ${author ? `<circle cx="${left + (compact ? 22 : 36)}" cy="${height - (compact ? 62 : 356)}" r="${compact ? 20 : 34}" fill="${template.colors.accent2}"/><path d="M${left + (compact ? 22 : 36)} ${height - (compact ? 70 : 368)}a9 9 0 1 0 0.1 0 M${left + (compact ? 7 : 18)} ${height - (compact ? 48 : 342)}c5-13 31-13 36 0" stroke="#fff" stroke-width="${compact ? 2 : 4}" fill="none"/>${author}` : ''}
+      <text class="keywords" x="${left}" y="${height - (compact ? 18 : 206)}">关键词一  ·  关键词二  ·  关键词三</text>
+      <style>
+        .category { fill: ${template.colors.muted}; font-size: ${compact ? 18 : 27}px; font-family: "Microsoft YaHei", sans-serif; }
+        .title text { fill: ${template.cover.titleColor}; font-size: ${titleSize}px; font-weight: 900; font-family: "Microsoft YaHei", sans-serif; letter-spacing: 0; }
+        .subtitle { fill: ${template.cover.subtitleColor}; font-size: ${subtitleSize}px; font-family: "Microsoft YaHei", sans-serif; }
+        .author-name { fill: ${template.colors.accent}; font-size: ${compact ? 20 : 32}px; font-weight: 900; font-family: "Microsoft YaHei", sans-serif; }
+        .author-title, .keywords { fill: ${template.colors.muted}; font-size: ${compact ? 16 : 24}px; font-family: "Microsoft YaHei", sans-serif; }
+      </style>
+    </svg>
+  `
+}
+
+function warmCoverTextSvg(meta: ArticleMeta, width: number, height: number): string {
+  const template = getTemplate(meta.template)
+  const compact = height < 600
+  const titleLines = wrapTextByUnits(meta.title, compact ? 9 : 7.8, compact ? 2 : 4)
+  const subtitleLines = meta.subtitle ? wrapTextByUnits(meta.subtitle, compact ? 18 : 16, 2) : []
+  const left = compact ? 62 : 102
+  const titleY = compact ? 136 : 445
+  const titleSize = compact ? 46 : titleLines.length >= 3 ? 78 : 90
+  const subtitleSize = compact ? 23 : 34
+  const titleText = titleLines
+    .map((line, index) => `<text x="${left}" y="${titleY + index * titleSize * 1.12}">${svgEscape(line)}</text>`)
+    .join('')
+  const subtitleStart = titleY + titleLines.length * titleSize * 1.12 + (compact ? 18 : 42)
+  const subtitleText = subtitleLines
+    .map(
+      (line, index) =>
+        `<text class="subtitle" x="${left}" y="${subtitleStart + index * subtitleSize * 1.5}">${svgEscape(line)}</text>`
+    )
+    .join('')
+  const author = meta.author
+    ? `<text class="author-name" x="${left + (compact ? 52 : 82)}" y="${height - (compact ? 58 : 332)}">${svgEscape(meta.author)}</text><text class="author-title" x="${left + (compact ? 52 : 82)}" y="${height - (compact ? 33 : 292)}">专注阅读与思考的写作者</text>`
+    : ''
+
+  return `
+    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="warmShade" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stop-color="#fff8ea" stop-opacity="0.97"/>
+          <stop offset="0.58" stop-color="#fff8ea" stop-opacity="0.78"/>
+          <stop offset="1" stop-color="#fff8ea" stop-opacity="0.18"/>
+        </linearGradient>
+      </defs>
+      <rect width="${width}" height="${height}" fill="url(#warmShade)"/>
+      <rect x="${compact ? 22 : 58}" y="${compact ? 20 : 62}" width="${width - (compact ? 44 : 116)}" height="${height - (compact ? 40 : 124)}" rx="${compact ? 22 : 46}" fill="none" stroke="rgba(201,149,49,0.18)" stroke-width="2"/>
+      <text class="series" x="${left}" y="${compact ? 54 : 128}">系列主题 / 读写成长</text>
+      <text class="date" x="${width - left}" y="${compact ? 54 : 128}" text-anchor="end">2026 / 05</text>
+      <rect x="${left}" y="${titleY + titleLines.length * titleSize * 1.12 + (compact ? 8 : 16)}" width="${compact ? 46 : 62}" height="6" rx="3" fill="${template.colors.accent}"/>
+      <g class="title">${titleText}</g>
+      <g>${subtitleText}</g>
+      ${author ? `<circle cx="${left + (compact ? 22 : 32)}" cy="${height - (compact ? 62 : 340)}" r="${compact ? 20 : 32}" fill="${template.colors.accent}"/><text x="${left + (compact ? 22 : 32)}" y="${height - (compact ? 54 : 330)}" text-anchor="middle" class="person">●</text>${author}` : ''}
+      <g class="features" transform="translate(${compact ? left : 102}, ${height - (compact ? 26 : 190)})">
+        <text x="0" y="0">核心观点</text>
+        <text x="${compact ? 146 : 300}" y="0">深度思考</text>
+        <text x="${compact ? 292 : 600}" y="0">实用方法</text>
+      </g>
+      <style>
+        .series, .date { fill: ${template.colors.muted}; font-size: ${compact ? 16 : 24}px; font-family: "Microsoft YaHei", sans-serif; }
+        .title text { fill: ${template.cover.titleColor}; font-size: ${titleSize}px; font-weight: 900; font-family: "Microsoft YaHei", sans-serif; letter-spacing: 0; }
+        .subtitle { fill: ${template.cover.subtitleColor}; font-size: ${subtitleSize}px; font-family: "Microsoft YaHei", sans-serif; }
+        .person { fill: #fff; font-size: ${compact ? 13 : 20}px; }
+        .author-name { fill: ${template.colors.text}; font-size: ${compact ? 19 : 30}px; font-weight: 900; font-family: "Microsoft YaHei", sans-serif; }
+        .author-title, .features text { fill: ${template.colors.muted}; font-size: ${compact ? 15 : 23}px; font-weight: 700; font-family: "Microsoft YaHei", sans-serif; }
+      </style>
+    </svg>
+  `
+}
+
+function coverTextSvg(meta: ArticleMeta, width: number, height: number): string {
+  const template = getTemplate(meta.template)
+  if (template.id === 'tech-briefing') return techCoverTextSvg(meta, width, height)
+  if (template.id === 'business-mono') return businessCoverTextSvg(meta, width, height)
+  if (template.id === 'warm-column') return warmCoverTextSvg(meta, width, height)
+  return genericCoverTextSvg(meta, width, height)
+}
+
 function placeholderCoverSvg(meta: ArticleMeta, width: number, height: number): string {
   const template = getTemplate(meta.template)
+  if (template.id === 'tech-briefing') {
+    return `
+      <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+        <rect width="${width}" height="${height}" fill="#f8fbff"/>
+        <rect width="${width}" height="${height}" fill="url(#grid)" opacity="0.45"/>
+        <defs>
+          <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+            <path d="M36 0H0V36" fill="none" stroke="#d5e8ff" stroke-width="1"/>
+          </pattern>
+        </defs>
+        <path d="M0 ${height * 0.78} C${width * 0.22} ${height * 0.72} ${width * 0.44} ${height * 0.82} ${width * 0.63} ${height * 0.73} C${width * 0.78} ${height * 0.66} ${width * 0.9} ${height * 0.7} ${width} ${height * 0.64} L${width} ${height} L0 ${height} Z" fill="#1976ff" opacity="0.12"/>
+        <g opacity="0.18" fill="#1976ff">
+          <rect x="${width * 0.56}" y="${height * 0.56}" width="${width * 0.08}" height="${height * 0.18}"/>
+          <rect x="${width * 0.66}" y="${height * 0.5}" width="${width * 0.1}" height="${height * 0.24}"/>
+          <rect x="${width * 0.79}" y="${height * 0.45}" width="${width * 0.08}" height="${height * 0.29}"/>
+          <rect x="${width * 0.89}" y="${height * 0.58}" width="${width * 0.07}" height="${height * 0.16}"/>
+        </g>
+      </svg>
+    `
+  }
+  if (template.id === 'business-mono') {
+    return `
+      <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+        <rect width="${width}" height="${height}" fill="#f7f7f5"/>
+        <path d="M${width * 0.42} ${height} L${width} ${height * 0.43} L${width} ${height} Z" fill="#c8c8c8" opacity="0.38"/>
+        <path d="M${width * 0.5} ${height} L${width} ${height * 0.55}" stroke="#8f8f8f" stroke-width="2" opacity="0.28"/>
+        <g opacity="0.22" stroke="#6f6f6f" stroke-width="1">
+          ${Array.from({ length: 11 })
+            .map((_, index) => `<path d="M${width * 0.48 + index * 58} ${height} L${width} ${height * (0.48 + index * 0.035)}"/>`)
+            .join('')}
+          ${Array.from({ length: 8 })
+            .map((_, index) => `<path d="M${width * 0.47} ${height * (0.74 + index * 0.035)} H${width}"/>`)
+            .join('')}
+        </g>
+      </svg>
+    `
+  }
+  if (template.id === 'warm-column') {
+    return `
+      <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+        <rect width="${width}" height="${height}" fill="#fff8ea"/>
+        <rect x="${width * 0.42}" y="${height * 0.12}" width="${width * 0.52}" height="${height * 0.68}" rx="38" fill="url(#warmPhoto)" opacity="0.72"/>
+        <defs>
+          <linearGradient id="warmPhoto" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0" stop-color="#fff3d6"/>
+            <stop offset="0.62" stop-color="#dec28e"/>
+            <stop offset="1" stop-color="#f7ead4"/>
+          </linearGradient>
+        </defs>
+        <circle cx="${width * 0.78}" cy="${height * 0.28}" r="${width * 0.12}" fill="#ffffff" opacity="0.32"/>
+        <path d="M${width * 0.72} ${height * 0.18} C${width * 0.78} ${height * 0.28} ${width * 0.78} ${height * 0.44} ${width * 0.66} ${height * 0.54}" stroke="#7d8b66" stroke-width="8" stroke-linecap="round" fill="none" opacity="0.28"/>
+        <path d="M${width * 0.69} ${height * 0.26} q32 -28 64 0 M${width * 0.71} ${height * 0.36} q38 -24 76 6" stroke="#7d8b66" stroke-width="8" stroke-linecap="round" fill="none" opacity="0.26"/>
+      </svg>
+    `
+  }
   return `
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
       <rect width="${width}" height="${height}" fill="${template.colors.background}"/>

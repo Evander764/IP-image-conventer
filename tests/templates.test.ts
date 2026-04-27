@@ -4,12 +4,12 @@ import { getTemplate, templateList } from '../src/shared/templates'
 import { PAGE_HEIGHT, PAGE_WIDTH, type ArticleMeta, type ArticlePage } from '../src/shared/types'
 
 describe('templates', () => {
-  it('registers six new templates before the legacy templates', () => {
+  it('keeps the three reference templates first', () => {
     expect(templateList.map((template) => template.id)).toEqual([
-      'editorial-clean',
-      'business-mono',
       'tech-briefing',
+      'business-mono',
       'warm-column',
+      'editorial-clean',
       'bold-opinion',
       'fresh-note',
       'shan-shui',
@@ -25,12 +25,12 @@ describe('templates', () => {
     }
   })
 
-  it('falls back unknown template ids to editorial-clean', () => {
-    expect(getTemplate('unknown-template').id).toBe('editorial-clean')
+  it('falls back unknown template ids to tech-briefing', () => {
+    expect(getTemplate('unknown-template').id).toBe('tech-briefing')
   })
 
   it('does not output page marks or repeated decorations in long mode', () => {
-    const template = getTemplate('bold-opinion')
+    const template = getTemplate('tech-briefing')
     const meta: ArticleMeta = {
       title: '测试标题',
       subtitle: '测试副标题',
@@ -53,6 +53,7 @@ describe('templates', () => {
     const html = renderArticlePageHtml(meta, page, template, { variant: 'long', pageCount: 3 })
     expect(html).toContain('long-stitch')
     expect(html).not.toContain('class="decor page-mark"')
-    expect(html).not.toContain('class="decor bold-number"')
+    expect(html).not.toContain('class="decor tech-circuit"')
+    expect(html).not.toContain('TECH SYSTEM / BRIEF')
   })
 })

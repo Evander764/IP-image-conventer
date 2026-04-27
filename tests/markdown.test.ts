@@ -44,6 +44,6 @@ template: unknown-template
 
 # 标题`)
 
-    expect(article.meta.template).toBe('editorial-clean')
+    expect(article.meta.template).toBe('tech-briefing')
   })
 })

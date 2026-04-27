@@ -66,22 +66,24 @@ function renderDecorations(template: TemplateConfig, page: ArticlePage): string 
       `
     case 'business-mono':
       return `
-        <div class="decor mono-frame"></div>
-        <div class="decor mono-index">NO.${page.index.toString().padStart(2, '0')}</div>
+        <div class="decor mono-building"></div>
+        <div class="decor mono-rule"></div>
+        <div class="decor mono-index">REPORT / ${page.index.toString().padStart(2, '0')}</div>
         ${pageMark}
       `
     case 'tech-briefing':
       return `
-        <div class="decor tech-grid"></div>
-        <div class="decor tech-orbit"></div>
-        <div class="decor tech-code">SYSTEM / BRIEF</div>
+        <div class="decor tech-circuit"></div>
+        <div class="decor tech-dots"></div>
+        <div class="decor tech-city"></div>
+        <div class="decor tech-code">TECH SYSTEM / BRIEF</div>
         ${pageMark}
       `
     case 'warm-column':
       return `
-        <div class="decor warm-sun"></div>
-        <div class="decor warm-line"></div>
-        <div class="decor warm-label">COLUMN</div>
+        <div class="decor warm-photo"></div>
+        <div class="decor warm-grain"></div>
+        <div class="decor warm-label">READING / GROWTH</div>
         ${pageMark}
       `
     case 'bold-opinion':
@@ -371,120 +373,343 @@ function renderCss(template: TemplateConfig, pageData?: ArticlePage, options: Re
       font-weight: 800;
     }
     .business-mono .page {
-      border: 18px solid ${colors.paper};
-      box-shadow: inset 0 0 0 1px ${colors.border};
+      background:
+        linear-gradient(115deg, transparent 0 56%, rgba(0,0,0,0.045) 56% 57%, transparent 57%),
+        radial-gradient(circle at 82% 78%, rgba(0,0,0,0.055), transparent 30%),
+        ${colors.paper};
     }
     .business-mono .series-chip {
+      top: 58px;
+      left: 110px;
+      padding: 0 0 18px;
+      color: ${colors.muted};
+      border: 0;
+      border-bottom: 8px solid ${colors.accent2};
       border-radius: 0;
-      background: ${colors.accent};
-      color: #fff;
+      background: transparent;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .business-mono .heading {
+      color: ${colors.accent};
     }
     .business-mono .heading-1 {
-      text-transform: uppercase;
+      max-width: 88%;
+      margin-top: 28px;
+      letter-spacing: 0;
+    }
+    .business-mono .heading-1::after {
+      width: 68%;
+      height: 1px;
+      margin-top: 34px;
+      background: ${colors.border};
+    }
+    .business-mono .heading-2 {
+      align-items: flex-start;
+      gap: 18px;
     }
     .business-mono .heading-2::before {
-      width: 58px;
-      height: 2px;
+      flex: 0 0 6px;
+      width: 6px;
+      height: 44px;
+      border-radius: 0;
+      background: ${colors.accent2};
     }
-    .business-mono .mono-frame {
-      inset: 62px;
-      border: 1px solid ${colors.border};
+    .business-mono .heading-3 {
+      padding: 0 0 10px;
+      color: ${colors.accent};
+      border: 0;
+      border-bottom: 3px solid ${colors.accent2};
+      border-radius: 0;
+      background: transparent;
+    }
+    .business-mono .paragraph {
+      max-width: 94%;
+    }
+    .business-mono .quote {
+      padding: 28px 36px 28px 58px;
+      border: 0;
+      border-left: 6px solid ${colors.accent2};
+      border-radius: 0;
+      background: ${colors.quoteBackground};
+      color: ${colors.text};
+    }
+    .business-mono .quote::before {
+      top: 14px;
+      left: 26px;
+      color: rgba(0,0,0,0.2);
+      font-size: 64px;
+    }
+    .business-mono .list {
+      padding: 0 0 0 42px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+    }
+    .business-mono .divider {
+      height: 46px;
+    }
+    .business-mono .mono-building {
+      right: -64px;
+      bottom: -40px;
+      width: 520px;
+      height: 480px;
+      opacity: 0.1;
+      background:
+        linear-gradient(145deg, transparent 0 34%, rgba(0,0,0,0.42) 34% 36%, transparent 36%),
+        repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0 2px, transparent 2px 38px),
+        repeating-linear-gradient(90deg, rgba(0,0,0,0.22) 0 2px, transparent 2px 54px);
+      clip-path: polygon(18% 32%, 100% 0, 100% 100%, 0 100%);
+    }
+    .business-mono .mono-rule {
+      left: 110px;
+      right: 110px;
+      bottom: 94px;
+      height: 1px;
+      background: ${colors.border};
+      opacity: 0.7;
     }
     .business-mono .mono-index {
-      right: 82px;
-      top: 82px;
+      right: 110px;
+      top: 74px;
       color: ${colors.muted};
       font-family: ${fonts.accent};
-      font-size: 22px;
+      font-size: 20px;
     }
     .tech-briefing .page {
       background:
-        linear-gradient(rgba(15, 116, 168, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(15, 116, 168, 0.05) 1px, transparent 1px),
+        linear-gradient(rgba(25, 118, 255, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(25, 118, 255, 0.045) 1px, transparent 1px),
+        radial-gradient(circle at 88% 8%, rgba(25,118,255,0.1), transparent 28%),
         ${colors.paper};
-      background-size: 34px 34px;
+      background-size: 28px 28px, 28px 28px, auto;
+    }
+    .tech-briefing .content {
+      counter-reset: tech-section;
     }
     .tech-briefing .series-chip {
-      border-color: rgba(15, 116, 168, 0.3);
-      background: rgba(255,255,255,0.72);
+      top: 56px;
+      left: 86px;
+      padding: 7px 18px;
+      color: ${colors.accent};
+      border-color: rgba(25, 118, 255, 0.3);
+      background: rgba(255,255,255,0.76);
       font-family: ${fonts.accent};
+      font-weight: 800;
+    }
+    .tech-briefing .heading-1 {
+      max-width: 86%;
+      color: ${colors.text};
+    }
+    .tech-briefing .heading-1::after {
+      width: 118px;
+      height: 6px;
+      margin-top: 28px;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg, ${colors.accent} 0 56px, transparent 56px 76px, ${colors.accent2} 76px 84px, transparent 84px 96px, ${colors.accent2} 96px 104px, transparent 104px);
+    }
+    .tech-briefing .heading-2 {
+      counter-increment: tech-section;
+      gap: 18px;
+      color: ${colors.text};
     }
     .tech-briefing .heading-2::before {
-      background: linear-gradient(90deg, ${colors.accent}, ${colors.accent2});
+      content: counter(tech-section, decimal-leading-zero);
+      flex: 0 0 auto;
+      width: 68px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      border-radius: 8px;
+      background: linear-gradient(135deg, ${colors.accent}, #4aa0ff);
+      font-family: ${fonts.accent};
+      font-size: 26px;
+      font-style: italic;
+      font-weight: 900;
+      box-shadow: 0 10px 24px rgba(25,118,255,0.22);
     }
-    .tech-briefing .quote,
+    .tech-briefing .heading-2::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      margin-left: 12px;
+      background: linear-gradient(90deg, ${colors.border}, transparent);
+    }
+    .tech-briefing .heading-3 {
+      color: ${colors.text};
+      border-color: rgba(25,118,255,0.22);
+      background: rgba(255,255,255,0.64);
+    }
+    .tech-briefing strong {
+      color: ${colors.accent};
+    }
+    .tech-briefing .quote {
+      padding: 26px 32px 26px 42px;
+      border: 1px solid ${colors.border};
+      border-left: 10px solid ${colors.accent};
+      border-radius: 14px;
+      background: ${colors.quoteBackground};
+      box-shadow: 0 14px 28px rgba(25, 118, 255, 0.055);
+    }
     .tech-briefing .list {
-      box-shadow: 0 12px 30px rgba(15, 116, 168, 0.06);
+      border-color: rgba(25,118,255,0.18);
+      background: rgba(255,255,255,0.48);
+      box-shadow: 0 14px 28px rgba(25, 118, 255, 0.05);
     }
-    .tech-briefing .tech-grid {
-      right: 70px;
-      bottom: 80px;
-      width: 180px;
-      height: 180px;
-      border: 1px solid rgba(15,116,168,0.22);
+    .tech-briefing .tech-circuit {
+      top: 0;
+      right: 0;
+      width: 320px;
+      height: 360px;
+      opacity: 0.5;
       background:
-        linear-gradient(rgba(15,116,168,0.14) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(15,116,168,0.14) 1px, transparent 1px);
-      background-size: 24px 24px;
-      opacity: 0.65;
+        linear-gradient(90deg, transparent 0 34%, rgba(25,118,255,0.28) 34% 35%, transparent 35%),
+        linear-gradient(0deg, transparent 0 26%, rgba(25,118,255,0.22) 26% 27%, transparent 27%),
+        radial-gradient(circle at 70% 22%, transparent 0 8px, rgba(25,118,255,0.28) 9px 10px, transparent 11px),
+        radial-gradient(circle at 42% 54%, transparent 0 7px, rgba(25,118,255,0.24) 8px 9px, transparent 10px);
+      clip-path: polygon(40% 0, 100% 0, 100% 90%, 74% 76%, 74% 30%, 40% 30%);
     }
-    .tech-briefing .tech-orbit {
-      right: 142px;
-      top: 122px;
-      width: 190px;
-      height: 190px;
-      border: 2px solid rgba(35,183,164,0.22);
-      border-radius: 50%;
+    .tech-briefing .tech-dots {
+      left: 0;
+      bottom: 0;
+      width: 230px;
+      height: 220px;
+      opacity: 0.42;
+      background-image: radial-gradient(${colors.accent2} 2px, transparent 2px);
+      background-size: 18px 18px;
+    }
+    .tech-briefing .tech-city {
+      right: 0;
+      bottom: 0;
+      width: 520px;
+      height: 260px;
+      opacity: 0.16;
+      background:
+        linear-gradient(to top, rgba(25,118,255,0.45), rgba(25,118,255,0)),
+        repeating-linear-gradient(90deg, transparent 0 36px, rgba(25,118,255,0.5) 36px 68px, transparent 68px 94px);
+      clip-path: polygon(0 100%, 0 70%, 10% 70%, 10% 52%, 18% 52%, 18% 78%, 29% 78%, 29% 44%, 41% 44%, 41% 64%, 52% 64%, 52% 28%, 65% 28%, 65% 72%, 76% 72%, 76% 48%, 88% 48%, 88% 78%, 100% 78%, 100% 100%);
     }
     .tech-briefing .tech-code {
-      left: 94px;
+      left: 86px;
       bottom: 58px;
       color: ${colors.muted};
       font-family: ${fonts.accent};
-      font-size: 20px;
+      font-size: 18px;
     }
     .warm-column .page {
-      box-shadow: inset 0 0 0 12px rgba(196, 95, 60, 0.045);
+      background:
+        radial-gradient(circle at 20% 0%, rgba(255,255,255,0.58), transparent 32%),
+        radial-gradient(circle at 88% 70%, rgba(201,149,49,0.08), transparent 28%),
+        ${colors.paper};
+    }
+    .warm-column .page::after {
+      content: "";
+      position: absolute;
+      inset: 26px;
+      z-index: 1;
+      pointer-events: none;
+      border-radius: 28px;
+      border: 1px solid rgba(201,149,49,0.12);
+    }
+    .warm-column .series-chip {
+      top: 58px;
+      left: 96px;
+      right: 96px;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 0 18px;
+      color: ${colors.muted};
+      border: 0;
+      border-bottom: 2px solid ${colors.border};
+      border-radius: 0;
+      background: transparent;
+      font-size: 22px;
+    }
+    .warm-column .series-chip::after {
+      content: "2026 / 05";
+      margin-left: auto;
     }
     .warm-column .heading-1 {
-      color: ${colors.accent};
-      text-align: center;
+      color: ${colors.text};
     }
     .warm-column .heading-1::after {
-      margin-left: auto;
-      margin-right: auto;
-      background: linear-gradient(90deg, transparent, ${colors.accent}, transparent);
+      width: 58px;
+      height: 6px;
+      margin-top: 20px;
+      border-radius: 999px;
+      background: ${colors.accent};
     }
     .warm-column .subtitle {
-      margin-left: auto;
-      margin-right: auto;
-      text-align: center;
+      max-width: 78%;
+      color: ${colors.muted};
+    }
+    .warm-column .heading-2 {
+      color: ${colors.text};
+    }
+    .warm-column .heading-2::before {
+      width: 8px;
+      height: 40px;
+      background: ${colors.accent};
+    }
+    .warm-column .heading-3 {
+      padding: 0 0 8px;
+      color: ${colors.text};
+      border: 0;
+      border-bottom: 2px dashed ${colors.accent};
+      border-radius: 0;
+      background: transparent;
     }
     .warm-column .paragraph {
-      text-indent: 2em;
+      text-indent: 0;
     }
-    .warm-column .warm-sun {
-      right: 78px;
-      top: 96px;
-      width: 112px;
-      height: 112px;
-      border-radius: 50%;
-      background: ${colors.accent2};
-      opacity: 0.16;
+    .warm-column .quote {
+      border: 0;
+      border-left: 8px solid ${colors.accent};
+      border-radius: 12px;
+      background: linear-gradient(90deg, rgba(201,149,49,0.12), rgba(255,255,255,0.42));
     }
-    .warm-column .warm-line {
-      left: 72px;
-      top: 220px;
-      bottom: 140px;
-      width: 2px;
-      background: linear-gradient(${colors.border}, transparent);
+    .warm-column .list {
+      border: 0;
+      border-radius: 14px;
+      background: rgba(201,149,49,0.08);
+    }
+    .warm-column .divider::before {
+      background: linear-gradient(90deg, transparent, ${colors.accent2}, transparent);
+    }
+    .warm-column .warm-photo {
+      right: 76px;
+      top: 130px;
+      width: 280px;
+      height: 240px;
+      border-radius: 24px;
+      opacity: 0.12;
+      background:
+        radial-gradient(circle at 70% 34%, rgba(201,149,49,0.55), transparent 26%),
+        linear-gradient(135deg, rgba(255,255,255,0.9), rgba(201,149,49,0.48));
+      box-shadow: 0 24px 50px rgba(120, 94, 48, 0.12);
+    }
+    .warm-column .warm-grain {
+      left: 34px;
+      bottom: 32px;
+      width: 180px;
+      height: 180px;
+      opacity: 0.18;
+      background:
+        radial-gradient(circle at 50% 12%, ${colors.accent} 0 8%, transparent 9%),
+        radial-gradient(circle at 34% 38%, ${colors.accent} 0 7%, transparent 8%),
+        radial-gradient(circle at 66% 38%, ${colors.accent} 0 7%, transparent 8%),
+        linear-gradient(0deg, transparent 48%, ${colors.accent} 49% 51%, transparent 52%);
+      transform: rotate(-18deg);
     }
     .warm-column .warm-label {
-      left: 92px;
-      bottom: 76px;
+      right: 96px;
+      bottom: 72px;
       color: ${colors.muted};
       font-family: ${fonts.accent};
-      font-size: 20px;
+      font-size: 19px;
     }
     .bold-opinion .page {
       box-shadow: inset 0 0 0 20px ${colors.accent};
@@ -911,6 +1136,9 @@ function renderCss(template: TemplateConfig, pageData?: ArticlePage, options: Re
       border-radius: 0;
       box-shadow: none;
     }
+    body.long-stitch .page::after {
+      display: none;
+    }
     body.long-stitch .content {
       height: ${page.height - top - bottom - contentTopOffset}px;
       margin: ${top}px ${page.paddingRight}px ${bottom}px ${page.paddingLeft}px;
@@ -918,6 +1146,17 @@ function renderCss(template: TemplateConfig, pageData?: ArticlePage, options: Re
     }
     body.long-stitch:not(.long-first) .heading-1 {
       margin-top: 0;
+    }
+    body.long-stitch.tech-briefing .page {
+      background-position:
+        0 -${backgroundOffset}px,
+        0 -${backgroundOffset}px,
+        0 0,
+        0 0;
+    }
+    body.long-stitch.business-mono .mono-rule,
+    body.long-stitch.warm-column .warm-label {
+      display: none;
     }
   `
 }
