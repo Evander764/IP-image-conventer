@@ -1,0 +1,87 @@
+{
+  "name": "ip-image-conventer",
+  "version": "0.1.0",
+  "productName": "IP-image-conventer",
+  "description": "Markdown to publish-ready image assets for Xiaohongshu and WeChat workflows.",
+  "main": "./out/main/index.js",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xinch/IP-image-conventer.git"
+  },
+  "ipImageConverter": {
+    "updateRepository": "xinch/IP-image-conventer"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "tsc -b && electron-vite build",
+    "dist": "npm run build && electron-builder --win --x64",
+    "pack": "npm run build && electron-builder --win --x64 --dir",
+    "icon": "node scripts/generate-icon.mjs",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
+    "preview": "electron-vite preview"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remark-parse": "^11.0.0",
+    "sharp": "^0.33.5",
+    "unified": "^11.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.17",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.2.1",
+    "electron-builder": "^26.8.1",
+    "electron-vite": "^2.3.0",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
+  },
+  "build": {
+    "appId": "com.local.ip-image-conventer",
+    "productName": "IP-image-conventer",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/icon.ico",
+        "to": "icon.ico"
+      }
+    ],
+    "win": {
+      "icon": "resources/icon.ico",
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "IP-image-conventer"
+    }
+  }
+}
