@@ -37,6 +37,26 @@ export const templateIds = [
 
 export const defaultTemplateId: TemplateId = 'tech-briefing'
 
+export function normalizeTitleScale(value: number | undefined): number {
+  if (!Number.isFinite(value)) return 1
+  return Math.min(1.3, Math.max(0.8, value ?? 1))
+}
+
+export function withTitleScale(template: TemplateConfig, value: number | undefined): TemplateConfig {
+  const scale = normalizeTitleScale(value)
+  if (scale === 1) return template
+  return {
+    ...template,
+    typography: {
+      ...template.typography,
+      h1: {
+        ...template.typography.h1,
+        fontSize: Math.round(template.typography.h1.fontSize * scale)
+      }
+    }
+  }
+}
+
 export const templates: Record<TemplateId, TemplateConfig> = {
   'editorial-clean': {
     id: 'editorial-clean',

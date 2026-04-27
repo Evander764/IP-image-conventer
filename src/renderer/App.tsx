@@ -25,7 +25,7 @@ import { renderArticlePageHtml } from '../shared/html'
 import { parseMarkdown } from '../shared/markdown'
 import { paginateBlocks } from '../shared/pagination'
 import { getPlatformPreset, platformList } from '../shared/platforms'
-import { defaultTemplateId, getTemplate, templateList } from '../shared/templates'
+import { defaultTemplateId, getTemplate, templateList, withTitleScale } from '../shared/templates'
 import type {
   ArticleBlock,
   ArticleMeta,
@@ -58,6 +58,7 @@ interface DraftState {
   markdown: string
   templateId: TemplateId
   platform: ArticleMeta['platform']
+  titleScale: number
   metaDraft: MetaDraft
   tags: string[]
   coverPrompt: string
@@ -76,7 +77,7 @@ const initialMarkdown = `---
 title: 为什么普通人越来越难专注
 subtitle: 在信息过载的时代，如何找回深度与专注力
 author: 图文转换器
-template: editorial-clean
+template: tech-briefing
 ---
 
 # 为什么普通人越来越难专注
@@ -106,6 +107,7 @@ const defaultDraft: DraftState = {
   markdown: initialMarkdown,
   templateId: defaultTemplateId,
   platform: 'xiaohongshu',
+  titleScale: 1,
   metaDraft: {
     title: '为什么普通人越来越难专注',
     subtitle: '在信息过载的时代，如何找回深度与专注力',
@@ -248,7 +250,8 @@ function App(): JSX.Element {
   })
 
   const platformPreset = getPlatformPreset(draft.platform)
-  const template = getTemplate(draft.templateId)
+  const baseTemplate = getTemplate(draft.templateId)
+  const template = useMemo(() => withTitleScale(baseTemplate, draft.titleScale), [baseTemplate, draft.titleScale])
   const parsed = useMemo(() => parseMarkdown(draft.markdown, draft.templateId), [draft.markdown, draft.templateId])
   const meta: ArticleMeta = useMemo(
     () => ({
@@ -257,9 +260,10 @@ function App(): JSX.Element {
       author: draft.metaDraft.author.trim() || parsed.meta.author,
       platform: draft.platform,
       template: draft.templateId,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      titleScale: draft.titleScale
     }),
-    [draft.metaDraft, draft.platform, draft.templateId, parsed.meta.author, parsed.meta.subtitle, parsed.meta.title]
+    [draft.metaDraft, draft.platform, draft.templateId, draft.titleScale, parsed.meta.author, parsed.meta.subtitle, parsed.meta.title]
   )
   const previewPages = useMemo(
     () => paginateBlocks(withFallbackTitle(parsed.blocks, meta), template),
@@ -686,6 +690,21 @@ function App(): JSX.Element {
                   </button>
                 ))}
               </div>
+              <div className="title-scale-card">
+                <div>
+                  <span>标题字号</span>
+                  <strong>{Math.round(draft.titleScale * 100)}%</strong>
+                </div>
+                <input
+                  type="range"
+                  min="80"
+                  max="130"
+                  step="5"
+                  value={Math.round(draft.titleScale * 100)}
+                  onChange={(event) => patchDraft({ titleScale: Number(event.target.value) / 100 })}
+                />
+                <p>同时影响正文大标题和导出封面标题。</p>
+              </div>
               <div className="cover-tools">
                 <button onClick={selectCoverImage}>
                   <Image size={17} />
@@ -866,7 +885,15 @@ function App(): JSX.Element {
                 }}
               >
                 <span>{template.series}</span>
-                <h1>{meta.title}</h1>
+                <h1
+                  style={{
+                    fontSize: `clamp(${Math.round(34 * draft.titleScale)}px, ${5.2 * draft.titleScale}vw, ${Math.round(
+                      64 * draft.titleScale
+                    )}px)`
+                  }}
+                >
+                  {meta.title}
+                </h1>
                 <p>{meta.subtitle}</p>
               </div>
             ) : previewMode === 'long' ? (

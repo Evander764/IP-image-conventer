@@ -7,7 +7,7 @@ import { renderArticlePageHtml } from '../shared/html'
 import { parseMarkdown } from '../shared/markdown'
 import { paginateBlocks } from '../shared/pagination'
 import { getPlatformPreset } from '../shared/platforms'
-import { defaultTemplateId, getTemplate } from '../shared/templates'
+import { defaultTemplateId, getTemplate, normalizeTitleScale, withTitleScale } from '../shared/templates'
 import {
   PAGE_HEIGHT,
   PAGE_WIDTH,
@@ -131,8 +131,12 @@ async function captureHtmlToPng(html: string, outputPath: string): Promise<void>
   const renderWindow = new BrowserWindow({
     width: PAGE_WIDTH,
     height: PAGE_HEIGHT,
+    useContentSize: true,
+    frame: false,
+    resizable: false,
     show: false,
     paintWhenInitiallyHidden: true,
+    backgroundColor: '#ffffff',
     webPreferences: {
       backgroundThrottling: false,
       offscreen: false,
@@ -141,23 +145,28 @@ async function captureHtmlToPng(html: string, outputPath: string): Promise<void>
   })
 
   try {
+    renderWindow.setContentSize(PAGE_WIDTH, PAGE_HEIGHT)
+    renderWindow.webContents.setZoomFactor(1)
     await renderWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
     await renderWindow.webContents.executeJavaScript(
       'document.fonts ? document.fonts.ready.then(() => true) : true'
     )
     await new Promise((resolve) => setTimeout(resolve, 100))
-    const image = await renderWindow.webContents.capturePage({
-      x: 0,
-      y: 0,
-      width: PAGE_WIDTH,
-      height: PAGE_HEIGHT
-    })
+    const image = await renderWindow.webContents.capturePage()
     const size = image.getSize()
     const png = image.toPNG()
     if (size.width === PAGE_WIDTH && size.height === PAGE_HEIGHT) {
       await writeFile(outputPath, png)
     } else {
-      await sharp(png).resize(PAGE_WIDTH, PAGE_HEIGHT, { fit: 'fill' }).png().toFile(outputPath)
+      const targetRatio = PAGE_WIDTH / PAGE_HEIGHT
+      const sourceRatio = size.width / size.height
+      await sharp(png)
+        .resize(PAGE_WIDTH, PAGE_HEIGHT, {
+          fit: Math.abs(targetRatio - sourceRatio) < 0.01 ? 'fill' : 'contain',
+          background: '#ffffff'
+        })
+        .png({ compressionLevel: 0 })
+        .toFile(outputPath)
     }
   } finally {
     renderWindow.destroy()
@@ -174,10 +183,11 @@ function coverFileName(meta: ArticleMeta): string {
 
 function genericCoverTextSvg(meta: ArticleMeta, width: number, height: number): string {
   const template = getTemplate(meta.template)
-  const titleLines = wrapTextByUnits(meta.title, 8.5, 4)
+  const titleScale = normalizeTitleScale(meta.titleScale)
+  const titleLines = wrapTextByUnits(meta.title, 8.5 / titleScale, 4)
   const subtitleLines = meta.subtitle ? wrapTextByUnits(meta.subtitle, 17, 2) : []
   const compact = height < 600
-  const titleSize = compact
+  const titleSize = Math.round((compact
     ? titleLines.length >= 3
       ? 44
       : 52
@@ -185,7 +195,7 @@ function genericCoverTextSvg(meta: ArticleMeta, width: number, height: number): 
       ? 86
       : titleLines.length >= 3
         ? 96
-        : 112
+        : 112) * titleScale)
   const centerX = width / 2
   const titleStart = compact ? 142 : 685 - titleLines.length * titleSize * 0.58
   const titleText = titleLines
@@ -261,12 +271,13 @@ function genericCoverTextSvg(meta: ArticleMeta, width: number, height: number): 
 function techCoverTextSvg(meta: ArticleMeta, width: number, height: number): string {
   const template = getTemplate(meta.template)
   const compact = height < 600
-  const titleLines = wrapTextByUnits(meta.title, compact ? 9 : 8.5, compact ? 2 : 4)
+  const titleScale = normalizeTitleScale(meta.titleScale)
+  const titleLines = wrapTextByUnits(meta.title, (compact ? 9 : 8.5) / titleScale, compact ? 2 : 4)
   const subtitleLines = meta.subtitle ? wrapTextByUnits(meta.subtitle, compact ? 18 : 16, 2) : []
   const left = compact ? 62 : 116
   const chipY = compact ? 48 : 210
   const titleY = compact ? 126 : 420
-  const titleSize = compact ? 48 : titleLines.length >= 3 ? 84 : 96
+  const titleSize = Math.round((compact ? 48 : titleLines.length >= 3 ? 84 : 96) * titleScale)
   const subtitleSize = compact ? 24 : 38
   const titleText = titleLines
     .map((line, index) => `<text x="${left}" y="${titleY + index * titleSize * 1.1}">${svgEscape(line)}</text>`)
@@ -325,11 +336,12 @@ function techCoverTextSvg(meta: ArticleMeta, width: number, height: number): str
 function businessCoverTextSvg(meta: ArticleMeta, width: number, height: number): string {
   const template = getTemplate(meta.template)
   const compact = height < 600
-  const titleLines = wrapTextByUnits(meta.title, compact ? 9 : 7.2, compact ? 2 : 4)
+  const titleScale = normalizeTitleScale(meta.titleScale)
+  const titleLines = wrapTextByUnits(meta.title, (compact ? 9 : 7.2) / titleScale, compact ? 2 : 4)
   const subtitleLines = meta.subtitle ? wrapTextByUnits(meta.subtitle, compact ? 18 : 15, 2) : []
   const left = compact ? 64 : 102
   const titleY = compact ? 118 : 302
-  const titleSize = compact ? 48 : titleLines.length >= 3 ? 86 : 104
+  const titleSize = Math.round((compact ? 48 : titleLines.length >= 3 ? 86 : 104) * titleScale)
   const subtitleSize = compact ? 24 : 34
   const titleText = titleLines
     .map((line, index) => `<text x="${left}" y="${titleY + index * titleSize * 1.08}">${svgEscape(line)}</text>`)
@@ -376,11 +388,12 @@ function businessCoverTextSvg(meta: ArticleMeta, width: number, height: number):
 function warmCoverTextSvg(meta: ArticleMeta, width: number, height: number): string {
   const template = getTemplate(meta.template)
   const compact = height < 600
-  const titleLines = wrapTextByUnits(meta.title, compact ? 9 : 7.8, compact ? 2 : 4)
+  const titleScale = normalizeTitleScale(meta.titleScale)
+  const titleLines = wrapTextByUnits(meta.title, (compact ? 9 : 7.8) / titleScale, compact ? 2 : 4)
   const subtitleLines = meta.subtitle ? wrapTextByUnits(meta.subtitle, compact ? 18 : 16, 2) : []
   const left = compact ? 62 : 102
   const titleY = compact ? 136 : 445
-  const titleSize = compact ? 46 : titleLines.length >= 3 ? 78 : 90
+  const titleSize = Math.round((compact ? 46 : titleLines.length >= 3 ? 78 : 90) * titleScale)
   const subtitleSize = compact ? 23 : 34
   const titleText = titleLines
     .map((line, index) => `<text x="${left}" y="${titleY + index * titleSize * 1.12}">${svgEscape(line)}</text>`)
@@ -545,10 +558,10 @@ async function convertImage(inputPath: string, outputPath: string, format: Expor
 
   const pipeline = sharp(inputPath)
   if (format === 'jpg') {
-    await pipeline.jpeg({ quality: 92, mozjpeg: true }).toFile(outputPath)
+    await pipeline.jpeg({ quality: 100, chromaSubsampling: '4:4:4', mozjpeg: false }).toFile(outputPath)
     return
   }
-  await pipeline.webp({ quality: 92 }).toFile(outputPath)
+  await pipeline.webp({ lossless: true, quality: 100 }).toFile(outputPath)
 }
 
 async function findAssetsForExport(outputDir: string, meta: ArticleMeta, assetType: ExportAssetType): Promise<string[]> {
@@ -621,7 +634,7 @@ async function cleanLongRenderPages(tempDir: string): Promise<void> {
 }
 
 async function createLongImage(job: RenderJob): Promise<string> {
-  const template = getTemplate(job.templateId)
+  const template = withTitleScale(getTemplate(job.templateId), job.meta.titleScale)
   const parsed = parseMarkdown(job.markdown, job.templateId)
   const blocks = withFallbackTitle(parsed.blocks, job.meta)
   const pages = paginateBlocks(blocks, template)
@@ -840,7 +853,7 @@ function registerIpc(): void {
 
   ipcMain.handle('renderPages', async (_event, job: RenderJob) => {
     await cleanGeneratedPages(job.outputDir)
-    const template = getTemplate(job.templateId)
+    const template = withTitleScale(getTemplate(job.templateId), job.meta.titleScale)
     const parsed = parseMarkdown(job.markdown, job.templateId)
     const blocks = withFallbackTitle(parsed.blocks, job.meta)
     const pages = paginateBlocks(blocks, template)

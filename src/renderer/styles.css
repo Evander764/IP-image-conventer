@@ -616,6 +616,47 @@ textarea {
   -webkit-line-clamp: 2;
 }
 
+.title-scale-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #dce5f2;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.title-scale-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title-scale-card span {
+  color: #66758b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.title-scale-card strong {
+  color: #1f6df0;
+  font-size: 14px;
+}
+
+.title-scale-card input[type="range"] {
+  height: 24px;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  accent-color: #1f6df0;
+}
+
+.title-scale-card p {
+  margin: 0;
+  color: #748298;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .cover-tools {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

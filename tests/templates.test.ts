@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { renderArticlePageHtml } from '../src/shared/html'
-import { getTemplate, templateList } from '../src/shared/templates'
+import { getTemplate, templateList, withTitleScale } from '../src/shared/templates'
 import { PAGE_HEIGHT, PAGE_WIDTH, type ArticleMeta, type ArticlePage } from '../src/shared/types'
 
 describe('templates', () => {
@@ -27,6 +27,14 @@ describe('templates', () => {
 
   it('falls back unknown template ids to tech-briefing', () => {
     expect(getTemplate('unknown-template').id).toBe('tech-briefing')
+  })
+
+  it('scales the primary title without mutating the base template', () => {
+    const base = getTemplate('tech-briefing')
+    const scaled = withTitleScale(base, 1.25)
+
+    expect(scaled.typography.h1.fontSize).toBe(Math.round(base.typography.h1.fontSize * 1.25))
+    expect(getTemplate('tech-briefing').typography.h1.fontSize).toBe(base.typography.h1.fontSize)
   })
 
   it('does not output page marks or repeated decorations in long mode', () => {

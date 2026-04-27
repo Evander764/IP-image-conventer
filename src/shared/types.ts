@@ -27,6 +27,7 @@ export interface ArticleMeta {
   platform: PlatformMode
   template: TemplateId
   createdAt: string
+  titleScale?: number
 }
 
 export interface RichTextSegment {
