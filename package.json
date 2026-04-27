@@ -7,10 +7,10 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/xinch/IP-image-conventer.git"
+    "url": "https://github.com/Evander764/IP-image-conventer.git"
   },
   "ipImageConverter": {
-    "updateRepository": "xinch/IP-image-conventer"
+    "updateRepository": "Evander764/IP-image-conventer"
   },
   "scripts": {
     "dev": "electron-vite dev",
