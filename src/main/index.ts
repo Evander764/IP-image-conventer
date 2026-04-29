@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs'
 import { copyFile, mkdir, readFile, readdir, stat, unlink, writeFile } from 'node:fs/promises'
 import { join, parse } from 'node:path'
 import sharp from 'sharp'
+import { renderCoverSvg } from '../shared/cover'
 import { renderArticlePageHtml } from '../shared/html'
 import { parseMarkdown } from '../shared/markdown'
 import { paginateBlocks } from '../shared/pagination'
@@ -521,21 +522,21 @@ function placeholderCoverSvg(meta: ArticleMeta, width: number, height: number): 
 async function createCover(job: RenderJob): Promise<string | null> {
   const preset = getPlatformPreset(job.meta.platform)
   const outputPath = join(job.outputDir, coverFileName(job.meta))
-  const overlay = Buffer.from(coverTextSvg(job.meta, preset.coverSize.width, preset.coverSize.height))
+  const backgroundImageHref = job.coverImagePath
+    ? `data:image/png;base64,${(
+        await sharp(job.coverImagePath)
+          .resize(preset.coverSize.width, preset.coverSize.height, { fit: 'cover', position: 'centre' })
+          .modulate({ brightness: 1.04, saturation: 0.78 })
+          .blur(0.35)
+          .png()
+          .toBuffer()
+      ).toString('base64')}`
+    : undefined
+  const svg = renderCoverSvg(job.meta, withTitleScale(getTemplate(job.templateId), job.meta.titleScale), preset.coverSize.width, preset.coverSize.height, {
+    backgroundImageHref
+  })
 
-  if (job.coverImagePath) {
-    await sharp(job.coverImagePath)
-      .resize(preset.coverSize.width, preset.coverSize.height, { fit: 'cover', position: 'centre' })
-      .composite([{ input: overlay, top: 0, left: 0 }])
-      .png()
-      .toFile(outputPath)
-    return outputPath
-  }
-
-  await sharp(Buffer.from(placeholderCoverSvg(job.meta, preset.coverSize.width, preset.coverSize.height)))
-    .composite([{ input: overlay, top: 0, left: 0 }])
-    .png()
-    .toFile(outputPath)
+  await sharp(Buffer.from(svg)).png({ compressionLevel: 0 }).toFile(outputPath)
   return outputPath
 }
 

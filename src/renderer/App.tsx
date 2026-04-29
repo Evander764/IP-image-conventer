@@ -21,6 +21,7 @@ import {
   ZoomOut
 } from 'lucide-react'
 import { createAssistantSuggestions } from '../shared/assistant'
+import { renderCoverSvg } from '../shared/cover'
 import { renderArticlePageHtml } from '../shared/html'
 import { parseMarkdown } from '../shared/markdown'
 import { paginateBlocks } from '../shared/pagination'
@@ -190,6 +191,14 @@ function localFileUrl(path: string): string {
   return `file:///${encodeURI(path.replace(/\\/g, '/'))}`
 }
 
+function svgDataUrl(svg: string): string {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
+function coverFrameHtml(svg: string): string {
+  return `<!doctype html><html><head><meta charset="utf-8"><style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#fff}svg{display:block;width:100%;height:100%}</style></head><body>${svg}</body></html>`
+}
+
 function exportKindName(kind: ExportAssetType): string {
   if (kind === 'pages') return '单页图'
   if (kind === 'long') return '长图'
@@ -274,6 +283,14 @@ function App(): JSX.Element {
     () => renderArticlePageHtml(meta, selectedPreviewPage, template),
     [meta, selectedPreviewPage, template]
   )
+  const coverSvg = useMemo(
+    () =>
+      renderCoverSvg(meta, template, platformPreset.coverSize.width, platformPreset.coverSize.height, {
+        backgroundImageHref: coverImagePath ? localFileUrl(coverImagePath) : undefined
+      }),
+    [coverImagePath, meta, platformPreset.coverSize.height, platformPreset.coverSize.width, template]
+  )
+  const coverHtml = useMemo(() => coverFrameHtml(coverSvg), [coverSvg])
   const suggestions = useMemo(
     () => createAssistantSuggestions(draft.markdown, meta.title, meta.subtitle ?? '', draft.templateId, assistantSeed),
     [assistantSeed, draft.markdown, draft.templateId, meta.subtitle, meta.title]
@@ -684,7 +701,7 @@ function App(): JSX.Element {
                     className={draft.templateId === item.id ? 'selected' : ''}
                     onClick={() => patchDraft({ templateId: item.id })}
                   >
-                    <TemplateThumb template={item} />
+                    <CoverTemplateThumb template={item} />
                     <strong>{item.name}</strong>
                     <span>{item.description}</span>
                   </button>
@@ -877,25 +894,16 @@ function App(): JSX.Element {
           </div>
           <div className={`preview-canvas ${previewMode}`}>
             {previewMode === 'cover' ? (
-              <div
-                className="cover-preview"
+              <iframe
+                className="cover-preview-frame"
                 style={{
-                  aspectRatio: `${platformPreset.coverSize.width} / ${platformPreset.coverSize.height}`,
-                  backgroundImage: coverBackground(template, coverImagePath)
+                  width: platformPreset.coverSize.width,
+                  height: platformPreset.coverSize.height,
+                  transform: `scale(${platformPreset.coverSize.height < 600 ? Math.min(0.92, zoom * 1.55) : zoom})`
                 }}
-              >
-                <span>{template.series}</span>
-                <h1
-                  style={{
-                    fontSize: `clamp(${Math.round(34 * draft.titleScale)}px, ${5.2 * draft.titleScale}vw, ${Math.round(
-                      64 * draft.titleScale
-                    )}px)`
-                  }}
-                >
-                  {meta.title}
-                </h1>
-                <p>{meta.subtitle}</p>
-              </div>
+                srcDoc={coverHtml}
+                title="cover-preview"
+              />
             ) : previewMode === 'long' ? (
               <div className="long-preview" style={{ transform: `scale(${zoom * 0.86})` }}>
                 {previewPages.map((page) => (
@@ -953,6 +961,24 @@ function TemplateThumb({ template }: { template: TemplateConfig }): JSX.Element 
       <span style={{ background: template.colors.text }} />
       <span style={{ background: template.colors.muted }} />
       <small style={{ borderColor: template.colors.border, background: template.colors.quoteBackground }} />
+    </div>
+  )
+}
+
+function CoverTemplateThumb({ template }: { template: TemplateConfig }): JSX.Element {
+  const thumbMeta: ArticleMeta = {
+    title: '标题示例',
+    subtitle: '副标题示例',
+    author: 'IP-image',
+    platform: 'xiaohongshu',
+    template: template.id,
+    createdAt: '2026-05-01T00:00:00.000Z'
+  }
+  const svg = renderCoverSvg(thumbMeta, template, 270, 360)
+
+  return (
+    <div className="template-thumb real-cover-thumb">
+      <img src={svgDataUrl(svg)} alt={`${template.name} 封面缩略图`} />
     </div>
   )
 }

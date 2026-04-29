@@ -31,7 +31,7 @@ export function createAssistantSuggestions(
     {
       id: `cover-${seed}-1`,
       target: 'coverPrompt',
-      text: `清爽自然光、书桌、纸张、清晰中文标题，主题是“${title || '成长笔记'}”。`
+      text: `高级克制的中文封面，清晰标题层级，主题是“${title || '成长笔记'}”，不要杂乱渐变。`
     },
     {
       id: `subtitle-${seed}-1`,

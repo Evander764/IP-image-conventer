@@ -36,13 +36,13 @@ export function wrapTextByUnits(value: string, maxUnits: number, maxLines: numbe
     const charUnits = /[\u2E80-\u9FFF\uF900-\uFAFF\u3000-\u303F\uFF00-\uFFEF]/.test(char) ? 1 : 0.58
     if (current && units + charUnits > maxUnits) {
       lines.push(current)
+      if (lines.length >= maxLines) return lines
       current = char
       units = charUnits
     } else {
       current += char
       units += charUnits
     }
-    if (lines.length >= maxLines - 1) break
   }
 
   if (current && lines.length < maxLines) lines.push(current)

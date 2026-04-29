@@ -1,6 +1,6 @@
 {
   "name": "ip-image-conventer",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "productName": "IP-image-conventer",
   "description": "Markdown to publish-ready image assets for Xiaohongshu and WeChat workflows.",
   "main": "./out/main/index.js",

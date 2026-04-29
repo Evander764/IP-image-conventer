@@ -20,6 +20,40 @@ export type ExportAssetType = 'pages' | 'long' | 'cover' | 'all'
 
 export type GenerationStep = 'import' | 'template' | 'cover' | 'pages' | 'long' | 'export'
 
+export type CoverLayout =
+  | 'left-report'
+  | 'split-editorial'
+  | 'center-statement'
+  | 'paper-column'
+  | 'note-board'
+
+export type CoverMotif =
+  | 'tech'
+  | 'business'
+  | 'warm'
+  | 'editorial'
+  | 'opinion'
+  | 'note'
+  | 'ink'
+  | 'essay'
+  | 'journal'
+
+export interface CoverDesignConfig {
+  layout: CoverLayout
+  motif: CoverMotif
+  palette: {
+    background: string
+    surface: string
+    title: string
+    subtitle: string
+    muted: string
+    accent: string
+    accent2: string
+    line: string
+    imageOverlay: string
+  }
+}
+
 export interface ArticleMeta {
   title: string
   subtitle?: string
@@ -142,6 +176,7 @@ export interface TemplateConfig {
     titleColor: string
     subtitleColor: string
     overlay: string
+    design: CoverDesignConfig
   }
 }
 
