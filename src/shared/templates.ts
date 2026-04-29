@@ -1,4 +1,12 @@
-import { PAGE_HEIGHT, PAGE_WIDTH, type CoverDesignConfig, type TemplateConfig, type TemplateId } from './types'
+import {
+  PAGE_HEIGHT,
+  PAGE_WIDTH,
+  type CoverDesignConfig,
+  type LayoutAdjustments,
+  type TemplateConfig,
+  type TemplateId,
+  type TextStyleConfig
+} from './types'
 
 const titleFont = '"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif'
 const bodyFont = '"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif'
@@ -62,6 +70,85 @@ export function withTitleScale(template: TemplateConfig, value: number | undefin
         fontSize: Math.round(template.typography.h1.fontSize * scale)
       }
     }
+  }
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
+
+function adjustTextStyle(
+  style: TextStyleConfig,
+  fontDelta = 0,
+  lineHeightDelta = 0,
+  marginDelta = 0
+): TextStyleConfig {
+  return {
+    ...style,
+    fontSize: Math.round(clamp(style.fontSize + fontDelta, 18, 130)),
+    lineHeight: Number(clamp(style.lineHeight + lineHeightDelta, 0.9, 2.4).toFixed(2)),
+    marginBottom: Math.round(clamp(style.marginBottom + marginDelta, 0, 80))
+  }
+}
+
+export function applyLayoutAdjustments(
+  template: TemplateConfig,
+  adjustments: LayoutAdjustments | undefined
+): TemplateConfig {
+  if (!adjustments || !Object.keys(adjustments).length) return template
+
+  const paddingX = adjustments.paddingXDelta ?? 0
+  const page = {
+    ...template.page,
+    paddingTop: Math.round(clamp(template.page.paddingTop + (adjustments.paddingTopDelta ?? 0), 40, 220)),
+    paddingRight: Math.round(clamp(template.page.paddingRight + paddingX, 40, 220)),
+    paddingBottom: Math.round(clamp(template.page.paddingBottom + (adjustments.paddingBottomDelta ?? 0), 40, 240)),
+    paddingLeft: Math.round(clamp(template.page.paddingLeft + paddingX, 40, 220)),
+    contentTopOffset: Math.round(clamp(template.page.contentTopOffset + (adjustments.contentTopOffsetDelta ?? 0), 0, 120))
+  }
+
+  return {
+    ...template,
+    page,
+    typography: {
+      h1: adjustTextStyle(
+        template.typography.h1,
+        adjustments.h1FontSizeDelta ?? 0,
+        adjustments.bodyLineHeightDelta ?? 0,
+        adjustments.paragraphSpacingDelta ?? 0
+      ),
+      h2: adjustTextStyle(
+        template.typography.h2,
+        adjustments.h2FontSizeDelta ?? 0,
+        adjustments.bodyLineHeightDelta ?? 0,
+        adjustments.paragraphSpacingDelta ?? 0
+      ),
+      h3: adjustTextStyle(
+        template.typography.h3,
+        adjustments.h3FontSizeDelta ?? 0,
+        adjustments.bodyLineHeightDelta ?? 0,
+        adjustments.paragraphSpacingDelta ?? 0
+      ),
+      paragraph: adjustTextStyle(
+        template.typography.paragraph,
+        adjustments.bodyFontSizeDelta ?? 0,
+        adjustments.bodyLineHeightDelta ?? 0,
+        adjustments.paragraphSpacingDelta ?? 0
+      ),
+      quote: adjustTextStyle(
+        template.typography.quote,
+        adjustments.bodyFontSizeDelta ?? 0,
+        adjustments.bodyLineHeightDelta ?? 0,
+        adjustments.paragraphSpacingDelta ?? 0
+      ),
+      list: adjustTextStyle(
+        template.typography.list,
+        adjustments.bodyFontSizeDelta ?? 0,
+        adjustments.bodyLineHeightDelta ?? 0,
+        adjustments.listSpacingDelta ?? adjustments.paragraphSpacingDelta ?? 0
+      )
+    },
+    adjustments: { ...adjustments }
   }
 }
 

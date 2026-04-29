@@ -138,6 +138,7 @@ function px(value: number): string {
 
 function renderCss(template: TemplateConfig, pageData?: ArticlePage, options: RenderHtmlOptions = {}): string {
   const { colors, fonts, typography, page } = template
+  const adjustments = template.adjustments ?? {}
   const isLong = options.variant === 'long'
   const pageIndex = pageData?.index ?? 1
   const pageCount = Math.max(1, options.pageCount ?? 1)
@@ -145,6 +146,15 @@ function renderCss(template: TemplateConfig, pageData?: ArticlePage, options: Re
   const top = isLong && pageIndex > 1 ? 60 : page.paddingTop
   const bottom = isLong && pageIndex < pageCount ? 64 : page.paddingBottom
   const contentTopOffset = isLong && pageIndex > 1 ? 0 : page.contentTopOffset
+  const quotePadding = Math.max(8, 24 + (adjustments.quotePaddingDelta ?? 0))
+  const quotePaddingWide = Math.max(12, 30 + (adjustments.quotePaddingDelta ?? 0))
+  const listPaddingY = Math.max(8, 20 + (adjustments.listSpacingDelta ?? 0))
+  const pageMarkPosition =
+    adjustments.pageMarkPosition === 'bottom-center'
+      ? 'left: 50%; right: auto; transform: translateX(-50%);'
+      : adjustments.pageMarkPosition === 'hidden'
+        ? 'display: none;'
+        : 'right: 48px;'
 
   return `
     * { box-sizing: border-box; }
@@ -289,7 +299,7 @@ function renderCss(template: TemplateConfig, pageData?: ArticlePage, options: Re
     }
     .quote {
       margin-bottom: ${typography.quote.marginBottom}px;
-      padding: 24px 30px 24px 42px;
+      padding: ${quotePadding}px ${quotePaddingWide}px ${quotePadding}px ${quotePaddingWide + 12}px;
       color: ${colors.text};
       border: 1px solid ${colors.border};
       border-left: 8px solid ${colors.accent};
@@ -311,7 +321,7 @@ function renderCss(template: TemplateConfig, pageData?: ArticlePage, options: Re
     }
     .list {
       margin: 0 0 ${typography.list.marginBottom}px;
-      padding: 20px 30px 20px 62px;
+      padding: ${listPaddingY}px 30px ${listPaddingY}px 62px;
       border: 1px solid ${colors.border};
       border-radius: 16px;
       background: rgba(255,255,255,0.28);
@@ -344,7 +354,7 @@ function renderCss(template: TemplateConfig, pageData?: ArticlePage, options: Re
       pointer-events: none;
     }
     .page-mark {
-      right: 48px;
+      ${pageMarkPosition}
       bottom: 40px;
       color: ${colors.muted};
       font-family: ${fonts.accent};

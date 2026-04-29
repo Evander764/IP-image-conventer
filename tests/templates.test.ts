@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { renderCoverSvg } from '../src/shared/cover'
 import { renderArticlePageHtml } from '../src/shared/html'
 import { getPlatformPreset } from '../src/shared/platforms'
-import { getTemplate, templateList, withTitleScale } from '../src/shared/templates'
+import { applyLayoutAdjustments, getTemplate, templateList, withTitleScale } from '../src/shared/templates'
 import { PAGE_HEIGHT, PAGE_WIDTH, type ArticleMeta, type ArticlePage } from '../src/shared/types'
 
 describe('templates', () => {
@@ -37,6 +37,22 @@ describe('templates', () => {
 
     expect(scaled.typography.h1.fontSize).toBe(Math.round(base.typography.h1.fontSize * 1.25))
     expect(getTemplate('tech-briefing').typography.h1.fontSize).toBe(base.typography.h1.fontSize)
+  })
+
+  it('applies project layout adjustments without mutating the base template', () => {
+    const base = getTemplate('tech-briefing')
+    const adjusted = applyLayoutAdjustments(base, {
+      bodyFontSizeDelta: 4,
+      paragraphSpacingDelta: 10,
+      paddingXDelta: 20,
+      pageMarkPosition: 'hidden'
+    })
+
+    expect(adjusted.typography.paragraph.fontSize).toBe(base.typography.paragraph.fontSize + 4)
+    expect(adjusted.typography.paragraph.marginBottom).toBe(base.typography.paragraph.marginBottom + 10)
+    expect(adjusted.page.paddingLeft).toBe(base.page.paddingLeft + 20)
+    expect(adjusted.adjustments?.pageMarkPosition).toBe('hidden')
+    expect(getTemplate('tech-briefing').page.paddingLeft).toBe(base.page.paddingLeft)
   })
 
   it('renders a real cover svg for every template', () => {
@@ -80,6 +96,35 @@ describe('templates', () => {
     expect(svg).toContain('Business Report / 2026')
   })
 
+  it('renders cover adjustment controls into the cover svg', () => {
+    const template = getTemplate('tech-briefing')
+    const preset = getPlatformPreset('xiaohongshu')
+    const svg = renderCoverSvg(
+      {
+        title: '可精细调节的封面',
+        subtitle: '位置和样式可控',
+        author: 'IP-image',
+        platform: 'xiaohongshu',
+        template: template.id,
+        createdAt: '2026-05-01T00:00:00.000Z',
+        coverLayoutAdjustments: {
+          align: 'center',
+          titleOffsetY: 40,
+          titleScale: 1.2,
+          shadow: true,
+          stroke: true
+        }
+      },
+      template,
+      preset.coverSize.width,
+      preset.coverSize.height
+    )
+
+    expect(svg).toContain('text-anchor="middle"')
+    expect(svg).toContain('filter: url(#softShadow)')
+    expect(svg).toContain('paint-order: stroke')
+  })
+
   it('does not output page marks or repeated decorations in long mode', () => {
     const template = getTemplate('tech-briefing')
     const meta: ArticleMeta = {
@@ -106,5 +151,34 @@ describe('templates', () => {
     expect(html).not.toContain('class="decor page-mark"')
     expect(html).not.toContain('class="decor tech-circuit"')
     expect(html).not.toContain('TECH SYSTEM / BRIEF')
+  })
+
+  it('renders layout adjustment CSS into article pages', () => {
+    const template = applyLayoutAdjustments(getTemplate('fresh-note'), {
+      quotePaddingDelta: 12,
+      listSpacingDelta: 8,
+      pageMarkPosition: 'bottom-center'
+    })
+    const meta: ArticleMeta = {
+      title: '测试标题',
+      platform: 'xiaohongshu',
+      template: template.id,
+      createdAt: new Date().toISOString()
+    }
+    const page: ArticlePage = {
+      index: 1,
+      blocks: [
+        {
+          id: 'quote-1',
+          type: 'quote',
+          text: '引用内容',
+          children: [{ text: '引用内容' }]
+        }
+      ]
+    }
+    const html = renderArticlePageHtml(meta, page, template)
+
+    expect(html).toContain('left: 50%; right: auto; transform: translateX(-50%);')
+    expect(html).toContain('padding: 36px 42px 36px 54px;')
   })
 })

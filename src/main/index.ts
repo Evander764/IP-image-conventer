@@ -1,14 +1,17 @@
 import { app, BrowserWindow, Menu, dialog, ipcMain, shell, type OpenDialogOptions } from 'electron'
 import { existsSync } from 'node:fs'
 import { copyFile, mkdir, readFile, readdir, stat, unlink, writeFile } from 'node:fs/promises'
-import { join, parse } from 'node:path'
+import { basename, dirname, join, parse } from 'node:path'
+import { pathToFileURL } from 'node:url'
+import JSZip from 'jszip'
 import sharp from 'sharp'
 import { renderCoverSvg } from '../shared/cover'
+import { pagePathIndex, parsePageRange } from '../shared/exporting'
 import { renderArticlePageHtml } from '../shared/html'
 import { parseMarkdown } from '../shared/markdown'
 import { paginateBlocks } from '../shared/pagination'
 import { getPlatformPreset } from '../shared/platforms'
-import { defaultTemplateId, getTemplate, normalizeTitleScale, withTitleScale } from '../shared/templates'
+import { applyLayoutAdjustments, defaultTemplateId, getTemplate, normalizeTitleScale, withTitleScale } from '../shared/templates'
 import {
   PAGE_HEIGHT,
   PAGE_WIDTH,
@@ -17,6 +20,7 @@ import {
   type ExportAssetType,
   type ExportFormat,
   type ExportSettings,
+  type LoadedProject,
   type ProjectInfo,
   type RenderJob,
   type SaveProjectPayload,
@@ -118,6 +122,10 @@ function withFallbackTitle(blocks: ArticleBlock[], meta: ArticleMeta): ArticleBl
   ]
 }
 
+function templateForJob(job: RenderJob) {
+  return applyLayoutAdjustments(withTitleScale(getTemplate(job.templateId), job.meta.titleScale), job.layoutAdjustments)
+}
+
 async function cleanGeneratedPages(outputDir: string): Promise<void> {
   await ensureDirectory(outputDir)
   const files = await readdir(outputDir)
@@ -169,6 +177,39 @@ async function captureHtmlToPng(html: string, outputPath: string): Promise<void>
         .png({ compressionLevel: 0 })
         .toFile(outputPath)
     }
+  } finally {
+    renderWindow.destroy()
+  }
+}
+
+async function captureHtmlToPdf(html: string, outputPath: string): Promise<void> {
+  const renderWindow = new BrowserWindow({
+    width: PAGE_WIDTH,
+    height: PAGE_HEIGHT,
+    useContentSize: true,
+    frame: false,
+    resizable: false,
+    show: false,
+    paintWhenInitiallyHidden: true,
+    backgroundColor: '#ffffff',
+    webPreferences: {
+      backgroundThrottling: false,
+      sandbox: false
+    }
+  })
+
+  try {
+    await renderWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+    await renderWindow.webContents.executeJavaScript(
+      'document.fonts ? document.fonts.ready.then(() => true) : true'
+    )
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    const pdf = await renderWindow.webContents.printToPDF({
+      printBackground: true,
+      preferCSSPageSize: true,
+      margins: { marginType: 'none' }
+    })
+    await writeFile(outputPath, pdf)
   } finally {
     renderWindow.destroy()
   }
@@ -525,14 +566,12 @@ async function createCover(job: RenderJob): Promise<string | null> {
   const backgroundImageHref = job.coverImagePath
     ? `data:image/png;base64,${(
         await sharp(job.coverImagePath)
-          .resize(preset.coverSize.width, preset.coverSize.height, { fit: 'cover', position: 'centre' })
           .modulate({ brightness: 1.04, saturation: 0.78 })
-          .blur(0.35)
           .png()
           .toBuffer()
       ).toString('base64')}`
     : undefined
-  const svg = renderCoverSvg(job.meta, withTitleScale(getTemplate(job.templateId), job.meta.titleScale), preset.coverSize.width, preset.coverSize.height, {
+  const svg = renderCoverSvg(job.meta, templateForJob(job), preset.coverSize.width, preset.coverSize.height, {
     backgroundImageHref
   })
 
@@ -551,7 +590,8 @@ function exportKindLabel(kind: ExportAssetType): string {
   return 'cover'
 }
 
-async function convertImage(inputPath: string, outputPath: string, format: ExportFormat): Promise<void> {
+async function convertImage(inputPath: string, outputPath: string, settings: ExportSettings): Promise<void> {
+  const format = settings.format
   if (format === 'png') {
     await copyFile(inputPath, outputPath)
     return
@@ -559,37 +599,44 @@ async function convertImage(inputPath: string, outputPath: string, format: Expor
 
   const pipeline = sharp(inputPath)
   if (format === 'jpg') {
-    await pipeline.jpeg({ quality: 100, chromaSubsampling: '4:4:4', mozjpeg: false }).toFile(outputPath)
+    await pipeline.jpeg({ quality: settings.quality ?? 96, chromaSubsampling: '4:4:4', mozjpeg: false }).toFile(outputPath)
     return
   }
-  await pipeline.webp({ lossless: true, quality: 100 }).toFile(outputPath)
+  if (format === 'webp') {
+    await pipeline.webp({ lossless: false, quality: settings.quality ?? 96 }).toFile(outputPath)
+    return
+  }
+  throw new Error(`${format} 不是图片导出格式。`)
 }
 
-async function findAssetsForExport(outputDir: string, meta: ArticleMeta, assetType: ExportAssetType): Promise<string[]> {
+async function findAssetsForExport(outputDir: string, meta: ArticleMeta, settings: ExportSettings): Promise<string[]> {
   const files = await readdir(outputDir)
-  if (assetType === 'pages') {
-    return files
-      .filter((file) => /^page-\d{3}\.png$/.test(file))
-      .sort()
-      .map((file) => join(outputDir, file))
+  const pagePaths = files
+    .filter((file) => /^page-\d{3}\.png$/.test(file))
+    .sort()
+    .map((file) => join(outputDir, file))
+  const pageIndexes = parsePageRange(settings.pageRange, pagePaths.length)
+  const rangedPagePaths = pagePaths.filter((path) => {
+    const index = pagePathIndex(path)
+    return index ? pageIndexes.includes(index) : true
+  })
+
+  if (settings.assetType === 'pages') {
+    return rangedPagePaths
   }
 
-  if (assetType === 'long') {
+  if (settings.assetType === 'long') {
     const longPath = join(outputDir, 'long.png')
     return existsSync(longPath) ? [longPath] : []
   }
 
-  if (assetType === 'all') {
-    const pagePaths = files
-      .filter((file) => /^page-\d{3}\.png$/.test(file))
-      .sort()
-      .map((file) => join(outputDir, file))
+  if (settings.assetType === 'all') {
     const longPath = join(outputDir, 'long.png')
     const coverPath = join(outputDir, coverFileName(meta))
     const fallbackCoverPath = join(outputDir, 'cover_vertical.png')
     return [
       ...(existsSync(coverPath) ? [coverPath] : existsSync(fallbackCoverPath) ? [fallbackCoverPath] : []),
-      ...pagePaths,
+      ...rangedPagePaths,
       ...(existsSync(longPath) ? [longPath] : [])
     ]
   }
@@ -600,24 +647,100 @@ async function findAssetsForExport(outputDir: string, meta: ArticleMeta, assetTy
   return existsSync(fallback) ? [fallback] : []
 }
 
+function pdfHtmlForAssets(paths: string[]): string {
+  const sheets = paths
+    .map(
+      (path) => `
+        <section class="sheet">
+          <img src="${pathToFileURL(path).toString()}" />
+        </section>`
+    )
+    .join('')
+
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @page { size: ${PAGE_WIDTH}px ${PAGE_HEIGHT}px; margin: 0; }
+      html, body { margin: 0; padding: 0; background: #fff; }
+      .sheet {
+        width: ${PAGE_WIDTH}px;
+        height: ${PAGE_HEIGHT}px;
+        display: grid;
+        place-items: center;
+        page-break-after: always;
+        overflow: hidden;
+        background: #fff;
+      }
+      .sheet:last-child { page-break-after: auto; }
+      img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+    </style>
+  </head>
+  <body>${sheets}</body>
+</html>`
+}
+
+async function exportPdf(job: RenderJob, sourcePaths: string[], exportDir: string, settings: ExportSettings): Promise<string> {
+  const kind = exportKindLabel(settings.assetType)
+  const outputPath = join(exportDir, `${settings.platform}-${kind}.pdf`)
+  await captureHtmlToPdf(pdfHtmlForAssets(sourcePaths), outputPath)
+  return outputPath
+}
+
+async function exportZipPackage(job: RenderJob, sourcePaths: string[], exportDir: string, settings: ExportSettings): Promise<string> {
+  const zip = new JSZip()
+  const packageName = `${settings.platform}-${settings.packageMode ?? 'publish'}-package`
+  const folder = zip.folder(packageName) ?? zip
+
+  for (const sourcePath of sourcePaths) {
+    folder.file(`assets/${basename(sourcePath)}`, await readFile(sourcePath))
+  }
+
+  const pdfPath = await exportPdf(job, sourcePaths, exportDir, { ...settings, format: 'pdf' })
+  folder.file(`assets/${basename(pdfPath)}`, await readFile(pdfPath))
+
+  const includeSource = settings.includeSource ?? settings.packageMode !== 'assets'
+  if (includeSource) {
+    const sourcePath = join(job.projectDir, 'source.md')
+    const configPath = join(job.projectDir, 'config.json')
+    if (existsSync(sourcePath)) folder.file('source.md', await readFile(sourcePath))
+    if (existsSync(configPath)) folder.file('config.json', await readFile(configPath))
+  }
+
+  const outputPath = join(exportDir, `${packageName}.zip`)
+  await writeFile(outputPath, await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }))
+  return outputPath
+}
+
 async function exportAssets(job: RenderJob, settings: ExportSettings): Promise<string[]> {
-  const sourcePaths = await findAssetsForExport(job.outputDir, job.meta, settings.assetType)
+  const sourcePaths = await findAssetsForExport(job.outputDir, job.meta, settings)
   if (!sourcePaths.length) {
     throw new Error('没有找到可导出的图片，请先完成生成流程。')
   }
 
   const exportDir = join(job.outputDir, 'exports')
   await ensureDirectory(exportDir)
+
+  if (settings.format === 'pdf') {
+    return [await exportPdf(job, sourcePaths, exportDir, settings)]
+  }
+
+  if (settings.format === 'zip') {
+    return [await exportZipPackage(job, sourcePaths, exportDir, settings)]
+  }
+
   const ext = exportExtension(settings.format)
   const kind = exportKindLabel(settings.assetType)
   const exportedPaths: string[] = []
 
   for (const [index, sourcePath] of sourcePaths.entries()) {
     const parsed = parse(sourcePath)
-    const suffix = settings.assetType === 'pages' ? `-${(index + 1).toString().padStart(3, '0')}` : ''
+    const pageIndex = pagePathIndex(sourcePath)
+    const suffix = settings.assetType === 'pages' ? `-${(pageIndex ?? index + 1).toString().padStart(3, '0')}` : ''
     const allName = settings.assetType === 'all' ? `-${parsed.name.replace(/^cover_/, 'cover-')}` : ''
     const outputPath = join(exportDir, `${settings.platform}-${kind}${suffix}${allName}.${ext}`)
-    await convertImage(sourcePath, outputPath, settings.format)
+    await convertImage(sourcePath, outputPath, settings)
     exportedPaths.push(outputPath)
   }
 
@@ -635,7 +758,7 @@ async function cleanLongRenderPages(tempDir: string): Promise<void> {
 }
 
 async function createLongImage(job: RenderJob): Promise<string> {
-  const template = withTitleScale(getTemplate(job.templateId), job.meta.titleScale)
+  const template = templateForJob(job)
   const parsed = parseMarkdown(job.markdown, job.templateId)
   const blocks = withFallbackTitle(parsed.blocks, job.meta)
   const pages = paginateBlocks(blocks, template)
@@ -808,6 +931,39 @@ function registerIpc(): void {
     }
   })
 
+  ipcMain.handle('openProjectFile', async (): Promise<LoadedProject | null> => {
+    const options: OpenDialogOptions = {
+      title: '打开项目配置',
+      properties: ['openFile'],
+      filters: [{ name: 'IP 图文项目', extensions: ['json'] }]
+    }
+    const result = mainWindow
+      ? await dialog.showOpenDialog(mainWindow, options)
+      : await dialog.showOpenDialog(options)
+
+    if (result.canceled || !result.filePaths[0]) return null
+    const configPath = result.filePaths[0]
+    const projectDir = dirname(configPath)
+    const sourcePath = join(projectDir, 'source.md')
+    const config = JSON.parse(await readFile(configPath, 'utf8')) as Partial<LoadedProject> & {
+      meta?: Partial<ArticleMeta>
+      coverImagePath?: string | null
+    }
+
+    return {
+      projectDir,
+      sourcePath,
+      configPath,
+      markdown: existsSync(sourcePath) ? await readFile(sourcePath, 'utf8') : '',
+      meta: config.meta ?? {},
+      coverImagePath: config.coverImagePath ?? undefined,
+      tags: config.tags ?? [],
+      coverPrompt: config.coverPrompt ?? '',
+      exportSettings: config.exportSettings,
+      layoutAdjustments: config.layoutAdjustments
+    }
+  })
+
   ipcMain.handle('selectCoverImage', async () => {
     const options: OpenDialogOptions = {
       title: '选择封面底图',
@@ -840,6 +996,7 @@ function registerIpc(): void {
           coverImagePath: payload.coverImagePath ?? null,
           tags: payload.tags ?? [],
           coverPrompt: payload.coverPrompt ?? '',
+          layoutAdjustments: payload.layoutAdjustments ?? {},
           exportSettings: payload.exportSettings ?? null,
           outputDir
         },
@@ -854,7 +1011,7 @@ function registerIpc(): void {
 
   ipcMain.handle('renderPages', async (_event, job: RenderJob) => {
     await cleanGeneratedPages(job.outputDir)
-    const template = withTitleScale(getTemplate(job.templateId), job.meta.titleScale)
+    const template = templateForJob(job)
     const parsed = parseMarkdown(job.markdown, job.templateId)
     const blocks = withFallbackTitle(parsed.blocks, job.meta)
     const pages = paginateBlocks(blocks, template)

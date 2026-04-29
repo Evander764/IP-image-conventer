@@ -1,6 +1,6 @@
 import { getTemplate, normalizeTitleScale } from './templates'
 import { escapeHtml, wrapTextByUnits } from './text'
-import type { ArticleMeta, TemplateConfig } from './types'
+import type { ArticleMeta, CoverLayoutAdjustments, TemplateConfig } from './types'
 
 export interface RenderCoverSvgOptions {
   backgroundImageHref?: string
@@ -12,12 +12,39 @@ function esc(value: string | undefined): string {
 
 function titleLines(meta: ArticleMeta, compact: boolean): string[] {
   const scale = normalizeTitleScale(meta.titleScale)
-  return wrapTextByUnits(meta.title || '未命名文章', (compact ? 13.5 : 8.2) / scale, compact ? 2 : 4)
+  const widthScale = scaleValue(meta.coverLayoutAdjustments?.maxWidthScale, 1)
+  return wrapTextByUnits(meta.title || '未命名文章', ((compact ? 13.5 : 8.2) * widthScale) / scale, compact ? 2 : 4)
 }
 
 function subtitleLines(meta: ArticleMeta, compact: boolean): string[] {
   if (!meta.subtitle) return []
   return wrapTextByUnits(meta.subtitle, compact ? 24 : 16.5, compact ? 1 : 2)
+}
+
+function coverAdjustments(meta: ArticleMeta): CoverLayoutAdjustments {
+  return meta.coverLayoutAdjustments ?? {}
+}
+
+function scaleValue(value: number | undefined, fallback = 1): number {
+  if (!Number.isFinite(value)) return fallback
+  return Math.min(1.6, Math.max(0.55, value ?? fallback))
+}
+
+function anchorForAdjustments(adjustments: CoverLayoutAdjustments): 'start' | 'middle' | 'end' {
+  if (adjustments.align === 'center') return 'middle'
+  if (adjustments.align === 'right') return 'end'
+  return 'start'
+}
+
+function xForAdjustments(
+  defaultLeft: number,
+  width: number,
+  adjustments: CoverLayoutAdjustments,
+  offset = 0
+): number {
+  const base =
+    adjustments.align === 'center' ? width / 2 : adjustments.align === 'right' ? width - defaultLeft : defaultLeft
+  return base + offset
 }
 
 function textLines(lines: string[], x: number, y: number, lineHeight: number, className: string, anchor = 'start'): string {
@@ -102,8 +129,20 @@ function motifDecor(template: TemplateConfig, width: number, height: number, com
   return ''
 }
 
-function backgroundLayer(template: TemplateConfig, width: number, height: number, imageHref?: string): string {
+function backgroundLayer(
+  template: TemplateConfig,
+  width: number,
+  height: number,
+  imageHref?: string,
+  adjustments: CoverLayoutAdjustments = {}
+): string {
   const { palette } = template.cover.design
+  const imageScale = scaleValue(adjustments.imageScale, 1)
+  const scaledWidth = width * imageScale
+  const scaledHeight = height * imageScale
+  const imageX = ((adjustments.imageFocusX ?? 0) + 50) / 100 * (width - scaledWidth)
+  const imageY = ((adjustments.imageFocusY ?? 0) + 50) / 100 * (height - scaledHeight)
+  const overlayOpacity = Math.min(1, Math.max(0, adjustments.overlayOpacity ?? 1))
   const texture = `
     <rect width="${width}" height="${height}" fill="${palette.background}"/>
     <rect width="${width}" height="${height}" fill="url(#fineGrid)" opacity="0.28"/>
@@ -112,54 +151,70 @@ function backgroundLayer(template: TemplateConfig, width: number, height: number
 
   if (!imageHref) return texture
   return `
-    <image href="${esc(imageHref)}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice"/>
-    <rect width="${width}" height="${height}" fill="${palette.imageOverlay}"/>
+    <image href="${esc(imageHref)}" x="${imageX}" y="${imageY}" width="${scaledWidth}" height="${scaledHeight}" preserveAspectRatio="xMidYMid slice"/>
+    <rect width="${width}" height="${height}" fill="${palette.imageOverlay}" opacity="${overlayOpacity}"/>
     <rect x="${width * 0.06}" y="${height * 0.08}" width="${width * 0.56}" height="${height * 0.64}" rx="${Math.min(width, height) * 0.028}" fill="${palette.surface}" opacity="0.9"/>
   `
 }
 
 function horizontalCover(meta: ArticleMeta, template: TemplateConfig, width: number, height: number, imageHref?: string): string {
   const { palette } = template.cover.design
-  const scale = normalizeTitleScale(meta.titleScale)
+  const adjustments = coverAdjustments(meta)
+  const titleScale = normalizeTitleScale(meta.titleScale) * scaleValue(adjustments.titleScale, 1)
   const title = titleLines(meta, true)
   const subtitle = subtitleLines(meta, true)
-  const titleSize = Math.round((title.length > 1 ? 48 : 56) * scale)
+  const titleSize = Math.round((title.length > 1 ? 48 : 56) * titleScale)
+  const subtitleSize = Math.round(24 * scaleValue(adjustments.subtitleScale, 1))
   const left = 62
   const titleY = 145
-  const author = meta.author ? `<text class="meta" x="${left}" y="${height - 42}">${esc(meta.author)}</text>` : ''
+  const anchor = anchorForAdjustments(adjustments)
+  const textX = xForAdjustments(left, width, adjustments, adjustments.titleOffsetX ?? 0)
+  const subtitleX = xForAdjustments(left, width, adjustments, adjustments.subtitleOffsetX ?? 0)
+  const authorX = xForAdjustments(left, width, adjustments, adjustments.authorOffsetX ?? 0)
+  const authorSize = Math.round(14 * scaleValue(adjustments.authorScale, 1))
+  const author = meta.author
+    ? `<text class="meta" x="${authorX}" y="${height - 42 + (adjustments.authorOffsetY ?? 0)}" text-anchor="${anchor}">${esc(meta.author)}</text>`
+    : ''
 
   return `
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
       <title>${esc(template.name)}</title>
       <desc>${esc(template.series)}</desc>
       ${defs(template)}
-      ${backgroundLayer(template, width, height, imageHref)}
+      ${backgroundLayer(template, width, height, imageHref, adjustments)}
       ${motifDecor(template, width, height, true)}
       <rect x="${left}" y="50" width="138" height="32" rx="6" fill="${palette.accent}"/>
       <text class="chip" x="${left + 18}" y="72">${esc(template.name)}</text>
       <path d="M${left} 102 H${width - 64}" stroke="${palette.line}" stroke-width="1"/>
-      <g>${textLines(title, left, titleY, titleSize * 1.05, 'title')}</g>
-      <g>${textLines(subtitle, left, titleY + title.length * titleSize * 1.05 + 26, 34, 'subtitle')}</g>
+      <g>${textLines(title, textX, titleY + (adjustments.titleOffsetY ?? 0), titleSize * 1.05, 'title', anchor)}</g>
+      <g>${textLines(subtitle, subtitleX, titleY + title.length * titleSize * 1.05 + 26 + (adjustments.subtitleOffsetY ?? 0), subtitleSize * 1.42, 'subtitle', anchor)}</g>
       ${author}
-      ${style(template, titleSize, 24, 14)}
+      ${style(template, titleSize, subtitleSize, authorSize, adjustments)}
     </svg>`
 }
 
 function verticalCover(meta: ArticleMeta, template: TemplateConfig, width: number, height: number, imageHref?: string): string {
   const { palette } = template.cover.design
   const layout = template.cover.design.layout
-  const scale = normalizeTitleScale(meta.titleScale)
+  const adjustments = coverAdjustments(meta)
+  const titleScale = normalizeTitleScale(meta.titleScale) * scaleValue(adjustments.titleScale, 1)
   const title = titleLines(meta, false)
   const subtitle = subtitleLines(meta, false)
   const baseTitleSize = layout === 'center-statement' ? 112 : layout === 'paper-column' ? 94 : 98
-  const titleSize = Math.round((title.length >= 4 ? baseTitleSize - 18 : title.length >= 3 ? baseTitleSize - 8 : baseTitleSize) * scale)
+  const titleSize = Math.round((title.length >= 4 ? baseTitleSize - 18 : title.length >= 3 ? baseTitleSize - 8 : baseTitleSize) * titleScale)
+  const subtitleSize = Math.round(34 * scaleValue(adjustments.subtitleScale, 1))
   const left = layout === 'center-statement' ? 92 : 104
   const top = layout === 'paper-column' ? 118 : 126
   const titleY = layout === 'center-statement' ? 350 : layout === 'paper-column' ? 430 : 380
   const subtitleY = titleY + title.length * titleSize * 1.05 + 42
   const authorY = height - 176
+  const anchor = anchorForAdjustments(adjustments)
+  const textX = xForAdjustments(left, width, adjustments, adjustments.titleOffsetX ?? 0)
+  const subtitleX = xForAdjustments(left, width, adjustments, adjustments.subtitleOffsetX ?? 0)
+  const authorX = xForAdjustments(left, width, adjustments, adjustments.authorOffsetX ?? 0)
+  const authorSize = Math.round(27 * scaleValue(adjustments.authorScale, 1))
   const author = meta.author
-    ? `<text class="author" x="${left}" y="${authorY}">${esc(meta.author)}</text><text class="meta" x="${left}" y="${authorY + 40}">内容创作者</text>`
+    ? `<text class="author" x="${authorX}" y="${authorY + (adjustments.authorOffsetY ?? 0)}" text-anchor="${anchor}">${esc(meta.author)}</text><text class="meta" x="${authorX}" y="${authorY + 40 + (adjustments.authorOffsetY ?? 0)}" text-anchor="${anchor}">内容创作者</text>`
     : ''
   const label = layout === 'center-statement' ? '核心观点' : template.name
   const frame =
@@ -172,15 +227,15 @@ function verticalCover(meta: ArticleMeta, template: TemplateConfig, width: numbe
       <title>${esc(template.name)}</title>
       <desc>${esc(template.series)}</desc>
       ${defs(template)}
-      ${backgroundLayer(template, width, height, imageHref)}
+      ${backgroundLayer(template, width, height, imageHref, adjustments)}
       ${motifDecor(template, width, height, false)}
       ${frame}
       <text class="series" x="${left}" y="${top}">${esc(template.series)}</text>
       <text class="date" x="${width - left}" y="${top}" text-anchor="end">${new Date(meta.createdAt).getFullYear()} / ${String(new Date(meta.createdAt).getMonth() + 1).padStart(2, '0')}</text>
       <rect x="${left}" y="${top + 34}" width="${Math.max(110, label.length * 24)}" height="44" rx="10" fill="${palette.accent}" opacity="0.92"/>
       <text class="chip" x="${left + 22}" y="${top + 64}">${esc(label)}</text>
-      <g>${textLines(title, left, titleY, titleSize * 1.05, 'title')}</g>
-      <g>${textLines(subtitle, left, subtitleY, 48, 'subtitle')}</g>
+      <g>${textLines(title, textX, titleY + (adjustments.titleOffsetY ?? 0), titleSize * 1.05, 'title', anchor)}</g>
+      <g>${textLines(subtitle, subtitleX, subtitleY + (adjustments.subtitleOffsetY ?? 0), subtitleSize * 1.42, 'subtitle', anchor)}</g>
       ${author}
       <g class="feature-row" transform="translate(${left}, ${height - 88})">
         <text x="0" y="0">清晰结构</text>
@@ -189,7 +244,7 @@ function verticalCover(meta: ArticleMeta, template: TemplateConfig, width: numbe
         <path d="M390 -10 V12" stroke="${palette.line}"/>
         <text x="440" y="0">可直接发布</text>
       </g>
-      ${style(template, titleSize, 34, 18)}
+      ${style(template, titleSize, subtitleSize, authorSize, adjustments)}
     </svg>`
 }
 
@@ -206,15 +261,25 @@ function defs(template: TemplateConfig): string {
     </defs>`
 }
 
-function style(template: TemplateConfig, titleSize: number, subtitleSize: number, metaSize: number): string {
+function style(
+  template: TemplateConfig,
+  titleSize: number,
+  subtitleSize: number,
+  metaSize: number,
+  adjustments: CoverLayoutAdjustments = {}
+): string {
   const { palette } = template.cover.design
+  const shadow = adjustments.shadow ? 'filter: url(#softShadow);' : ''
+  const stroke = adjustments.stroke
+    ? 'paint-order: stroke; stroke: rgba(255,255,255,0.78); stroke-width: 5px; stroke-linejoin: round;'
+    : ''
   return `
     <style>
       .series,.date,.meta { fill: ${palette.muted}; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: ${metaSize}px; font-weight: 800; letter-spacing: 0; }
       .chip { fill: #fff; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: ${metaSize + 5}px; font-weight: 900; letter-spacing: 0; }
-      .title { fill: ${palette.title}; font-family: ${template.fonts.title}; font-size: ${titleSize}px; font-weight: 900; letter-spacing: 0; }
-      .subtitle { fill: ${palette.subtitle}; font-family: ${template.fonts.body}; font-size: ${subtitleSize}px; font-weight: 650; letter-spacing: 0; }
-      .author { fill: ${palette.title}; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: ${metaSize + 9}px; font-weight: 900; letter-spacing: 0; }
+      .title { fill: ${palette.title}; font-family: ${template.fonts.title}; font-size: ${titleSize}px; font-weight: 900; letter-spacing: 0; ${shadow} ${stroke} }
+      .subtitle { fill: ${palette.subtitle}; font-family: ${template.fonts.body}; font-size: ${subtitleSize}px; font-weight: 650; letter-spacing: 0; ${shadow} }
+      .author { fill: ${palette.title}; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: ${metaSize + 9}px; font-weight: 900; letter-spacing: 0; ${shadow} }
       .feature-row text { fill: ${palette.muted}; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: ${metaSize + 3}px; font-weight: 900; letter-spacing: 0; }
       .stamp,.seal { fill: ${palette.accent}; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: ${metaSize + 10}px; font-weight: 900; letter-spacing: 0; }
     </style>`

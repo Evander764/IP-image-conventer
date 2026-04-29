@@ -3,6 +3,7 @@ import type { IpImageConverterApi, RenderJob, SaveProjectPayload } from '../shar
 
 const api: IpImageConverterApi = {
   importMarkdownFile: () => ipcRenderer.invoke('importMarkdownFile'),
+  openProjectFile: () => ipcRenderer.invoke('openProjectFile'),
   selectCoverImage: () => ipcRenderer.invoke('selectCoverImage'),
   saveProject: (payload: SaveProjectPayload) => ipcRenderer.invoke('saveProject', payload),
   renderPages: (job: RenderJob) => ipcRenderer.invoke('renderPages', job),
