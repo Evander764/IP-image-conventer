@@ -14,7 +14,7 @@ export type TemplateId =
   | 'essay-notes'
   | 'journal-growth'
 
-export type ExportFormat = 'png' | 'jpg' | 'webp'
+export type ExportFormat = 'png' | 'jpg' | 'webp' | 'pdf' | 'zip'
 
 export type ExportAssetType = 'pages' | 'long' | 'cover' | 'all'
 
@@ -62,6 +62,43 @@ export interface ArticleMeta {
   template: TemplateId
   createdAt: string
   titleScale?: number
+  coverLayoutAdjustments?: CoverLayoutAdjustments
+}
+
+export interface LayoutAdjustments {
+  bodyFontSizeDelta?: number
+  bodyLineHeightDelta?: number
+  paragraphSpacingDelta?: number
+  h1FontSizeDelta?: number
+  h2FontSizeDelta?: number
+  h3FontSizeDelta?: number
+  paddingXDelta?: number
+  paddingTopDelta?: number
+  paddingBottomDelta?: number
+  contentTopOffsetDelta?: number
+  quotePaddingDelta?: number
+  listSpacingDelta?: number
+  pageMarkPosition?: 'bottom-right' | 'bottom-center' | 'hidden'
+}
+
+export interface CoverLayoutAdjustments {
+  titleOffsetX?: number
+  titleOffsetY?: number
+  subtitleOffsetX?: number
+  subtitleOffsetY?: number
+  authorOffsetX?: number
+  authorOffsetY?: number
+  titleScale?: number
+  subtitleScale?: number
+  authorScale?: number
+  maxWidthScale?: number
+  align?: 'left' | 'center' | 'right'
+  shadow?: boolean
+  stroke?: boolean
+  imageScale?: number
+  imageFocusX?: number
+  imageFocusY?: number
+  overlayOpacity?: number
 }
 
 export interface RichTextSegment {
@@ -178,6 +215,16 @@ export interface TemplateConfig {
     overlay: string
     design: CoverDesignConfig
   }
+  adjustments?: LayoutAdjustments
+}
+
+export interface CustomTemplateConfig {
+  id: string
+  name: string
+  baseTemplateId: TemplateId
+  layoutAdjustments: LayoutAdjustments
+  coverLayoutAdjustments: CoverLayoutAdjustments
+  createdAt: string
 }
 
 export interface ProjectInfo {
@@ -191,6 +238,7 @@ export interface RenderJob {
   markdown: string
   meta: ArticleMeta
   templateId: TemplateId
+  layoutAdjustments?: LayoutAdjustments
   coverImagePath?: string
   projectDir: string
   outputDir: string
@@ -214,6 +262,10 @@ export interface ExportSettings {
   assetType: ExportAssetType
   platform: PlatformMode
   pageSize: string
+  quality?: number
+  pageRange?: string
+  includeSource?: boolean
+  packageMode?: 'assets' | 'publish'
 }
 
 export interface ExportAssetsResult {
@@ -261,6 +313,7 @@ export interface SaveProjectPayload {
   coverImagePath?: string
   tags?: string[]
   coverPrompt?: string
+  layoutAdjustments?: LayoutAdjustments
   exportSettings?: ExportSettings
 }
 
@@ -269,8 +322,22 @@ export interface ImportedMarkdownFile {
   content: string
 }
 
+export interface LoadedProject {
+  projectDir: string
+  sourcePath: string
+  configPath: string
+  markdown: string
+  meta: Partial<ArticleMeta>
+  coverImagePath?: string
+  tags: string[]
+  coverPrompt: string
+  exportSettings?: Partial<ExportSettings>
+  layoutAdjustments?: LayoutAdjustments
+}
+
 export interface IpImageConverterApi {
   importMarkdownFile: () => Promise<ImportedMarkdownFile | null>
+  openProjectFile: () => Promise<LoadedProject | null>
   selectCoverImage: () => Promise<string | null>
   saveProject: (payload: SaveProjectPayload) => Promise<ProjectInfo>
   renderPages: (job: RenderJob) => Promise<RenderPagesResult>
