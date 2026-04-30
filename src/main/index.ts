@@ -9,6 +9,7 @@ import { parseMarkdown } from '../shared/markdown'
 import { paginateBlocks } from '../shared/pagination'
 import { getPlatformPreset } from '../shared/platforms'
 import { defaultTemplateId, getTemplate, normalizeTitleScale, withTitleScale } from '../shared/templates'
+import { initializeAutoUpdater, registerUpdaterIpc, scheduleStartupUpdateCheck } from './updater'
 import {
   PAGE_HEIGHT,
   PAGE_WIDTH,
@@ -20,7 +21,7 @@ import {
   type ProjectInfo,
   type RenderJob,
   type SaveProjectPayload,
-  type UpdateCheckResult
+  type UpdateState
 } from '../shared/types'
 import { escapeHtml, slugify, wrapTextByUnits } from '../shared/text'
 
@@ -733,12 +734,12 @@ function compareVersions(left: string, right: string): number {
   return 0
 }
 
-async function checkForUpdate(): Promise<UpdateCheckResult> {
+async function checkForUpdate(): Promise<UpdateState> {
   const currentVersion = app.getVersion()
   const repository = await updateRepository()
   if (!repository) {
     return {
-      status: 'not-configured',
+      status: 'unavailable',
       currentVersion,
       available: false,
       message: '未配置 GitHub 更新仓库。'
@@ -771,7 +772,7 @@ async function checkForUpdate(): Promise<UpdateCheckResult> {
     const latestVersion = normalizeVersion(release.tag_name || release.name)
     const available = compareVersions(latestVersion, currentVersion) > 0
     return {
-      status: 'ok',
+      status: available ? 'available' : 'not-available',
       currentVersion,
       latestVersion,
       available,
@@ -902,8 +903,6 @@ function registerIpc(): void {
     }
     shell.showItemInFolder(path)
   })
-
-  ipcMain.handle('checkForUpdate', async () => checkForUpdate())
 }
 
 app.whenReady().then(() => {
@@ -911,7 +910,13 @@ app.whenReady().then(() => {
   app.setAppUserModelId('com.local.ip-image-conventer')
   Menu.setApplicationMenu(null)
   registerIpc()
+  registerUpdaterIpc()
+  initializeAutoUpdater({
+    getWindow: () => mainWindow,
+    fallbackCheck: checkForUpdate
+  })
   createMainWindow()
+  scheduleStartupUpdateCheck()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow()

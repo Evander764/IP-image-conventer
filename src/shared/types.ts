@@ -239,15 +239,39 @@ export interface BrowserAutomationState {
   promptCopied: boolean
 }
 
-export interface UpdateCheckResult {
-  status: 'ok' | 'not-configured' | 'unavailable' | 'error'
+export type UpdateStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'installing'
+  | 'not-available'
+  | 'unavailable'
+  | 'error'
+  | 'unsupported'
+
+export interface UpdateProgress {
+  percent: number
+  bytesPerSecond: number
+  transferred: number
+  total: number
+}
+
+export interface UpdateState {
+  status: UpdateStatus
   currentVersion: string
   latestVersion?: string
   available: boolean
   releaseUrl?: string
   repository?: string
   message?: string
+  progress?: UpdateProgress
+  releaseName?: string
+  releaseNotes?: string
 }
+
+export type UpdateCheckResult = UpdateState
 
 export interface AssistantSuggestion {
   id: string
@@ -280,5 +304,9 @@ export interface IpImageConverterApi {
   openOutputFolder: (path: string) => Promise<void>
   openExternalUrl: (url: string) => Promise<void>
   revealPath: (path: string) => Promise<void>
-  checkForUpdate: () => Promise<UpdateCheckResult>
+  checkForUpdate: () => Promise<UpdateState>
+  startUpdateDownload: () => Promise<UpdateState>
+  getUpdateState: () => Promise<UpdateState>
+  dismissUpdate: () => Promise<UpdateState>
+  onUpdateState: (callback: (state: UpdateState) => void) => () => void
 }

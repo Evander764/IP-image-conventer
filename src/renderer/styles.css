@@ -870,16 +870,60 @@ textarea {
   background: #fff8e6;
 }
 
-.update-banner span {
+.update-banner.checking,
+.update-banner.downloading,
+.update-banner.downloaded,
+.update-banner.installing {
+  background: #edf4ff;
+}
+
+.update-banner.error,
+.update-banner.unavailable,
+.update-banner.unsupported {
+  background: #fff0ee;
+}
+
+.update-copy {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.update-copy strong,
+.update-copy span {
   overflow: hidden;
-  color: #704b16;
   font-size: 13px;
-  font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.update-copy strong {
+  color: #263247;
+  font-weight: 900;
+}
+
+.update-copy span {
+  color: #704b16;
+  font-weight: 800;
+}
+
+.update-banner.checking .update-copy span,
+.update-banner.downloading .update-copy span,
+.update-banner.downloaded .update-copy span,
+.update-banner.installing .update-copy span {
+  color: #216ff0;
+}
+
+.update-banner.error .update-copy span,
+.update-banner.unavailable .update-copy span,
+.update-banner.unsupported .update-copy span {
+  color: #a8332b;
+}
+
 .update-banner button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   height: 30px;
   padding: 0 11px;
   border-radius: 8px;
@@ -887,6 +931,20 @@ textarea {
   background: #ffe7ae;
   font-size: 12px;
   font-weight: 900;
+}
+
+.update-progress {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(33, 111, 240, 0.14);
+}
+
+.update-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #216ff0;
 }
 
 .visual-header {

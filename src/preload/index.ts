@@ -12,7 +12,17 @@ const api: IpImageConverterApi = {
   openOutputFolder: (path: string) => ipcRenderer.invoke('openOutputFolder', path),
   openExternalUrl: (url: string) => ipcRenderer.invoke('openExternalUrl', url),
   revealPath: (path: string) => ipcRenderer.invoke('revealPath', path),
-  checkForUpdate: () => ipcRenderer.invoke('checkForUpdate')
+  checkForUpdate: () => ipcRenderer.invoke('checkForUpdate'),
+  startUpdateDownload: () => ipcRenderer.invoke('startUpdateDownload'),
+  getUpdateState: () => ipcRenderer.invoke('getUpdateState'),
+  dismissUpdate: () => ipcRenderer.invoke('dismissUpdate'),
+  onUpdateState: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, state: Awaited<ReturnType<IpImageConverterApi['getUpdateState']>>) => {
+      callback(state)
+    }
+    ipcRenderer.on('updateState', listener)
+    return () => ipcRenderer.removeListener('updateState', listener)
+  }
 }
 
 contextBridge.exposeInMainWorld('ipWriter', api)

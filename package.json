@@ -23,6 +23,7 @@
     "preview": "electron-vite preview"
   },
   "dependencies": {
+    "electron-updater": "^6.8.3",
     "gray-matter": "^4.0.3",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
@@ -49,6 +50,13 @@
     "directories": {
       "output": "release"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Evander764",
+        "repo": "IP-image-conventer"
+      }
+    ],
     "files": [
       "out/**/*",
       "package.json"
@@ -78,10 +86,14 @@
       ]
     },
     "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "IP-image-conventer"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
     }
   }
 }

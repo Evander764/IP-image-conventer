@@ -40,8 +40,9 @@ import type {
   RenderJob,
   TemplateConfig,
   TemplateId,
-  UpdateCheckResult
+  UpdateState
 } from '../shared/types'
+import { updateStatusLabel } from '../shared/update'
 
 const DRAFT_KEY = 'ip-image-converter:draft:v4'
 const RECENT_KEY = 'ip-image-converter:recent:v4'
@@ -224,6 +225,38 @@ function coverBackground(template: TemplateConfig, coverImagePath: string): stri
   `
 }
 
+function shouldShowUpdateBanner(updateInfo: UpdateState | null): updateInfo is UpdateState {
+  return Boolean(updateInfo && updateInfo.status !== 'idle')
+}
+
+function formatUpdateBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  let value = bytes
+  let unitIndex = 0
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024
+    unitIndex += 1
+  }
+  return `${value >= 10 || unitIndex === 0 ? Math.round(value) : value.toFixed(1)} ${units[unitIndex]}`
+}
+
+function updateBannerMessage(updateInfo: UpdateState): string {
+  if (updateInfo.status === 'available') {
+    return `发现新版本 ${updateInfo.latestVersion ?? ''}，当前版本 ${updateInfo.currentVersion}`
+  }
+  if (updateInfo.status === 'downloading') {
+    const progress = updateInfo.progress
+    const percent = Math.max(0, Math.min(100, Math.round(progress?.percent ?? 0)))
+    const speed = formatUpdateBytes(progress?.bytesPerSecond ?? 0)
+    return `正在下载更新 ${percent}% · ${speed}/s`
+  }
+  if (updateInfo.status === 'downloaded') return '更新已下载完成，即将自动安装'
+  if (updateInfo.status === 'installing') return '正在安装更新并重启应用'
+  if (updateInfo.status === 'not-available') return `已是最新版本 ${updateInfo.currentVersion}`
+  return updateInfo.message || updateStatusLabel(updateInfo.status)
+}
+
 function App(): JSX.Element {
   const [draft, setDraft] = useState<DraftState>(() => readDraft())
   const [currentStep, setCurrentStep] = useState<WorkflowStep>('content')
@@ -242,7 +275,7 @@ function App(): JSX.Element {
   const [recentExports, setRecentExports] = useState<RecentExport[]>(() => readRecentExports())
   const [savedAt, setSavedAt] = useState(() => nowTime())
   const [error, setError] = useState('')
-  const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null)
+  const [updateInfo, setUpdateInfo] = useState<UpdateState | null>(null)
   const [generation, setGeneration] = useState<GenerationState>({
     activeStep: null,
     completed: [],
@@ -339,9 +372,13 @@ function App(): JSX.Element {
   }, [recentExports])
 
   useEffect(() => {
-    void window.ipWriter.checkForUpdate().then((result) => {
-      if (result.available) setUpdateInfo(result)
+    const unsubscribe = window.ipWriter.onUpdateState((result) => {
+      setUpdateInfo(result)
     })
+    void window.ipWriter.getUpdateState().then((result) => {
+      setUpdateInfo(result)
+    })
+    return unsubscribe
   }, [])
 
   function patchDraft(partial: Partial<DraftState>): void {
@@ -545,6 +582,25 @@ function App(): JSX.Element {
     if (currentStep === 'design') return '下一步：看预览'
     if (currentStep === 'preview') return '生成图片'
     return '导出文件'
+  }
+
+  async function startUpdateDownload(): Promise<void> {
+    try {
+      const result = await window.ipWriter.startUpdateDownload()
+      setUpdateInfo(result)
+    } catch (caught) {
+      setUpdateInfo({
+        status: 'error',
+        currentVersion: updateInfo?.currentVersion ?? '',
+        available: false,
+        message: caught instanceof Error ? caught.message : String(caught)
+      })
+    }
+  }
+
+  async function dismissUpdate(): Promise<void> {
+    const result = await window.ipWriter.dismissUpdate()
+    setUpdateInfo(result)
   }
 
   const generatedOutputText = projectInfo ? projectInfo.outputDir : '还没有生成输出目录'
@@ -872,13 +928,26 @@ function App(): JSX.Element {
         </aside>
 
         <section className="visual-panel">
-          {updateInfo?.available ? (
-            <div className="update-banner">
-              <span>
-                发现新版本 {updateInfo.latestVersion}，当前版本 {updateInfo.currentVersion}
-              </span>
-              {updateInfo.releaseUrl ? <button onClick={() => window.ipWriter.openExternalUrl(updateInfo.releaseUrl!)}>查看更新</button> : null}
-              <button onClick={() => setUpdateInfo(null)}>稍后</button>
+          {shouldShowUpdateBanner(updateInfo) ? (
+            <div className={`update-banner ${updateInfo.status}`}>
+              <div className="update-copy">
+                <strong>{updateStatusLabel(updateInfo.status)}</strong>
+                <span>{updateBannerMessage(updateInfo)}</span>
+                {updateInfo.status === 'downloading' && updateInfo.progress ? (
+                  <div className="update-progress">
+                    <i style={{ width: `${Math.max(0, Math.min(100, updateInfo.progress.percent))}%` }} />
+                  </div>
+                ) : null}
+              </div>
+              {updateInfo.status === 'available' ? (
+                <button onClick={startUpdateDownload}>
+                  <Download size={14} />
+                  立即更新
+                </button>
+              ) : null}
+              {updateInfo.status === 'downloading' || updateInfo.status === 'installing' ? null : (
+                <button onClick={dismissUpdate}>稍后</button>
+              )}
             </div>
           ) : null}
           <div className="visual-header">
